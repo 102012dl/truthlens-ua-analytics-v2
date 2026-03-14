@@ -99,9 +99,9 @@ if "results" in st.session_state and st.session_state.results:
     st.subheader("📋 Результати перевірки")
     
     def highlight_rows(row):
-        if row["got"] == "ERROR":
+        if "Отримано" in row and row["Отримано"] == "ERROR":
             return ['background-color: #ffcccc'] * len(row)
-        elif not row["match"]:
+        elif "✅" in row and not row["✅"]:
             return ['background-color: #fff3cd'] * len(row)
         else:
             return ['background-color: #d4edda'] * len(row)
