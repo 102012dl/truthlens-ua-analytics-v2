@@ -7,7 +7,7 @@ API_URL = os.getenv("API_URL", "http://api:8000")
 @st.cache_data(ttl=300)
 def load_gold_dataset():
     try:
-        df = pd.read_csv("data/gold/demo_cases.csv")
+        df = pd.read_csv("/data/gold/demo_cases.csv")
         return df
     except Exception as e:
         st.error(f"Не вдалося завантажити датасет: {e}")
@@ -30,7 +30,7 @@ st.markdown("*Тестування моделі на авторському да
 df = load_gold_dataset()
 
 if df.empty:
-    st.error("Датасет не знайдено. Переконайтесь, що data/gold/demo_cases.csv існує.")
+    st.error("Датасет не знайдено. Переконайтесь, що /data/gold/demo_cases.csv існує.")
     st.stop()
 
 # Show dataset info
