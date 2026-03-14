@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+*.egg-info/
+
+# Env & Secrets
+.env
+!.env.example
+
+# Data (large files)
+data/raw/**/*.csv
+data/processed/
+artifacts/*.joblib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker
+postgres-data/
+
+# Jupyter
+.ipynb_checkpoints/
+*.nbconvert/
+
+# OS
+.DS_Store
+Thumbs.db
