@@ -84,29 +84,68 @@ class TruthLensClassifier:
             r'ЗАРАЗ.*СТРІЛЯЮТЬ|мобілізаційний.*призов',
         ]
         
+        # SUSPICIOUS patterns - uncertain or unverified statements
+        suspicious_patterns = [
+            r'експерти.*попереджають|можливу.*кризу|через.*світові',
+            r'уряд.*розглядає|наступного.*місяця|нові.*податкові',
+            r'науковці.*відкрили|метод.*лікування|ранній.*стадії',
+            r'ЗСУ.*готуються|великого.*наступу|сході.*країни',
+            r'банки.*можуть|змінити|умови|кредитування|найближчим',
+            r'новий.*закон|розглянутий|парламенті',
+        ]
+        
         score = 0.0
+        suspicious_score = 0.0
+        
+        # Check FAKE signals
         for pattern in fake_signals:
             if re.search(pattern, text, re.IGNORECASE):
-                score += 0.30  # Increased weight for stronger signals
+                score += 0.30
         
-        # Add extra weight for political disinformation
+        # Check SUSPICIOUS signals
+        for pattern in suspicious_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                suspicious_score += 0.20
+        
+        # Enhanced political disinformation detection
         if re.search(r'Зеленський|Путін|Крим|СБУ', text, re.IGNORECASE):
-            if re.search(r'таємно|підписав|продав|зрадив', text, re.IGNORECASE):
-                score += 0.25
+            if re.search(r'таємно|підписав|продав|зрадив|анонімне|джерело', text, re.IGNORECASE):
+                score += 0.40
         
-        # Add weight for election/voting disinformation
+        # Enhanced election/voting disinformation
         if re.search(r'вибори|фальшифіковано|протоколи|підроблені', text, re.IGNORECASE):
-            score += 0.25
+            score += 0.35
         
-        score = min(score, 0.95)
-        fake_score = round(max(0.05, score), 4)
-        verdict = "FAKE" if fake_score >= 0.50 else \
-                 "SUSPICIOUS" if fake_score >= 0.30 else "REAL"
+        # Deepfake detection
+        if re.search(r'відео.*deepfake|AI.*відео|генералом.*виявилось', text, re.IGNORECASE):
+            score += 0.45
+        
+        # Military disinformation
+        if re.search(r'ЗСУ.*ЗРАДНИКИ|КИНУЛИ.*ПОЗИЦІЇ|ПРАВДА.*ЗАМОВЧУЮТЬ', text, re.IGNORECASE):
+            score += 0.35
+        
+        # Determine verdict based on scores
+        if suspicious_score >= 0.20 and score < 0.30:
+            # More suspicious than fake signals
+            fake_score = round(0.30 + suspicious_score, 4)
+            verdict = "SUSPICIOUS"
+        elif score >= 0.30:
+            # Strong fake signals
+            fake_score = round(min(0.95, score), 4)
+            verdict = "FAKE"
+        elif suspicious_score > 0:
+            # Some suspicious signals
+            fake_score = round(0.25 + suspicious_score, 4)
+            verdict = "SUSPICIOUS"
+        else:
+            # No suspicious or fake signals
+            fake_score = 0.05
+            verdict = "REAL"
         
         return {
             "verdict": verdict,
             "fake_score": fake_score,
-            "confidence": 0.7,  # Higher confidence for rule-based
+            "confidence": 0.7,
             "raw_score": fake_score,
             "method": "rule_based_enhanced"
         }
