@@ -42,9 +42,10 @@ class TruthLensOrchestrator:
         # Step 3: Verdict (ІПСО override takes priority)
         if override:
             verdict = "FAKE"
-        elif fake_score >= 0.65:
+            fake_score = max(fake_score, 0.70)  # Ensure high fake_score for IPSO
+        elif fake_score >= 0.45:  # Lowered from 0.65
             verdict = "FAKE"
-        elif fake_score >= 0.40:
+        elif fake_score >= 0.25:  # Lowered from 0.40
             verdict = "SUSPICIOUS"
         else:
             verdict = "REAL"

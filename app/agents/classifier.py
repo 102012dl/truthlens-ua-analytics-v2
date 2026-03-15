@@ -132,13 +132,27 @@ class TruthLensClassifier:
             if re.search(pattern, text, re.IGNORECASE):
                 real_score += 0.25
         
-        # If strong REAL patterns found, prioritize REAL classification
-        if real_score >= 0.25 and suspicious_score < 0.20:
+        # Check for strong IPSO indicators that should override REAL classification
+        strong_ipso_patterns = [
+            r'anonymous_sources',
+            r'deepfake_indicator',
+            r'urgency_injection.*deletion_threat.*viral_call',
+            r'conspiracy_framing.*caps_abuse.*awakening_appeal',
+        ]
+        
+        ipso_override = False
+        for pattern in strong_ipso_patterns:
+            if pattern in text.lower():  # IPSO patterns will be added later in orchestrator
+                ipso_override = True
+                break
+        
+        # If strong REAL patterns found AND no strong IPSO, prioritize REAL
+        if real_score >= 0.25 and suspicious_score < 0.20 and not ipso_override:
             fake_score = 0.05
             verdict = "REAL"
-        elif score >= 0.30:
-            # Strong fake signals
-            fake_score = round(min(0.95, score), 4)
+        elif ipso_override or score >= 0.30:
+            # Strong IPSO indicators or fake signals
+            fake_score = round(min(0.95, max(score, 0.60)), 4)  # Minimum 60% for IPSO
             verdict = "FAKE"
         elif suspicious_score >= 0.20:
             # More suspicious than fake signals
