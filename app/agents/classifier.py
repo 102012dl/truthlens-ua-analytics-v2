@@ -89,13 +89,14 @@ class TruthLensClassifier:
             r'експерти.*попереджають|можливу.*кризу|через.*світові',
             r'уряд.*розглядає|наступного.*місяця|нові.*податкові',
             r'науковці.*відкрили|метод.*лікування|ранній.*стадії',
-            r'ЗСУ.*готуються|великого.*наступу|сході.*країни',
+            r'ЗСУ.*готуються.*великого.*наступу|ЗСУ.*готуються.*наступу',  # More specific
             r'банки.*можуть|змінити|умови|кредитування|найближчим',
             r'новий.*закон|розглянутий|парламенті',
         ]
         
         score = 0.0
         suspicious_score = 0.0
+        real_score = 0.0
         
         # Check FAKE signals
         for pattern in fake_signals:
@@ -106,6 +107,32 @@ class TruthLensClassifier:
         for pattern in suspicious_patterns:
             if re.search(pattern, text, re.IGNORECASE):
                 suspicious_score += 0.20
+        
+        # Check for positive REAL patterns
+        for pattern in real_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                real_score += 0.25
+        
+        # If strong REAL patterns found, prioritize REAL classification
+        if real_score >= 0.25 and suspicious_score < 0.20:
+            fake_score = 0.05
+            verdict = "REAL"
+        elif score >= 0.30:
+            # Strong fake signals
+            fake_score = round(min(0.95, score), 4)
+            verdict = "FAKE"
+        elif suspicious_score >= 0.20:
+            # More suspicious than fake signals
+            fake_score = round(0.30 + suspicious_score, 4)
+            verdict = "SUSPICIOUS"
+        elif suspicious_score > 0:
+            # Some suspicious signals
+            fake_score = round(0.25 + suspicious_score, 4)
+            verdict = "SUSPICIOUS"
+        else:
+            # No suspicious or fake signals
+            fake_score = 0.05
+            verdict = "REAL"
         
         # Enhanced political disinformation detection
         if re.search(r'Зеленський|Путін|Крим|СБУ', text, re.IGNORECASE):
@@ -123,24 +150,6 @@ class TruthLensClassifier:
         # Military disinformation
         if re.search(r'ЗСУ.*ЗРАДНИКИ|КИНУЛИ.*ПОЗИЦІЇ|ПРАВДА.*ЗАМОВЧУЮТЬ', text, re.IGNORECASE):
             score += 0.35
-        
-        # Determine verdict based on scores
-        if suspicious_score >= 0.20 and score < 0.30:
-            # More suspicious than fake signals
-            fake_score = round(0.30 + suspicious_score, 4)
-            verdict = "SUSPICIOUS"
-        elif score >= 0.30:
-            # Strong fake signals
-            fake_score = round(min(0.95, score), 4)
-            verdict = "FAKE"
-        elif suspicious_score > 0:
-            # Some suspicious signals
-            fake_score = round(0.25 + suspicious_score, 4)
-            verdict = "SUSPICIOUS"
-        else:
-            # No suspicious or fake signals
-            fake_score = 0.05
-            verdict = "REAL"
         
         return {
             "verdict": verdict,
