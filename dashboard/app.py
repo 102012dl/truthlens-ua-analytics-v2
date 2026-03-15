@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 import re
 
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+
 # Configuration
 st.set_page_config(
     page_title="TruthLens UA Analytics v2.1",
@@ -80,7 +82,7 @@ st.sidebar.markdown("### ⚙️ Налаштування")
 if "onrender.com" in st.runtime.get_instance_id() or "RENDER" in os.environ.get("ENV", ""):
     api_url = st.sidebar.text_input("API URL", value="https://truthlens-ua-analytics.onrender.com")
 else:
-    api_url = st.sidebar.text_input("API URL", value="http://localhost:8000")
+    api_url = st.sidebar.text_input("API URL", value=API_URL)
 st.sidebar.markdown("---")
 
 # Built-in analysis function
@@ -169,6 +171,7 @@ with tab1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
             value=st.session_state.text_input,
+            placeholder="ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!",
             height=100,
             key="main_text_input"
         )
