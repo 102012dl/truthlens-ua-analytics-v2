@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
+import os
 
 # Configuration
 st.set_page_config(
@@ -55,7 +56,11 @@ st.markdown("---")
 
 # Sidebar
 st.sidebar.markdown("### ⚙️ Налаштування")
-api_url = st.sidebar.text_input("API URL", value="http://localhost:8000")
+# Auto-detect if running on Render
+if "onrender.com" in st.runtime.get_instance_id() or "RENDER" in os.environ.get("ENV", ""):
+    api_url = st.sidebar.text_input("API URL", value="https://truthlens-ua-analytics.onrender.com")
+else:
+    api_url = st.sidebar.text_input("API URL", value="http://localhost:8000")
 st.sidebar.markdown("---")
 
 # Main content
@@ -193,6 +198,8 @@ with tab3:
     - **REAL detection:** 100% (15/15)
     - **SUSPICIOUS detection:** 100% (6/6)
     - **Overall accuracy:** 100% (31/31)
+    
+    **📝 Примітка:** В хмарному середовищі демо-дані не доступні через обмеження файлового доступу.
     """)
 
 # Footer

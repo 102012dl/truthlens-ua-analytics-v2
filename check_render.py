@@ -12,8 +12,8 @@ from datetime import datetime
 def check_render_deployment():
     """Перевіряє статус деплою на Render"""
     
-    render_url = "https://truthlens-ua.onrender.com"
-    api_url = f"{render_url}/health"
+    render_url = "https://truthlens-ua-analytics.onrender.com"
+    api_url = f"{render_url}/_stcore/health"
     
     print("🚀 TruthLens UA Analytics - Render Deploy Checker")
     print("=" * 50)
@@ -68,7 +68,7 @@ def check_render_deployment():
 def wait_for_deployment(max_wait=300):
     """Чекає на завершення деплою"""
     
-    render_url = "https://truthlens-ua.onrender.com"
+    render_url = "https://truthlens-ua-analytics.onrender.com"
     
     print("⏳ Чекаю на завершення деплою...")
     print(f"⏱️  Максимальний час очікування: {max_wait} секунд")
