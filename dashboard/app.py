@@ -13,6 +13,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Force cache clearing
+if "text_input" not in st.session_state:
+    st.session_state.text_input = ""
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -149,17 +153,29 @@ with tab1:
     with col1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-            height=100
+            value=st.session_state.text_input,
+            height=100,
+            key="main_text_input"
         )
+        # Update session state
+        st.session_state.text_input = text_input
     
     with col2:
         st.markdown("### Приклади")
         if st.button("📰 Фейк"):
-            text_input = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
+            st.session_state.text_input = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
+            st.rerun()
         if st.button("✅ Реальна"):
-            text_input = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
+            st.session_state.text_input = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
+            st.rerun()
         if st.button("⚠️ Підозріла"):
-            text_input = "Експерти попереджають про можливу економічну кризу через світові ринки."
+            st.session_state.text_input = "Експерти попереджають про можливу економічну кризу через світові ринки."
+            st.rerun()
+        
+        # Add clear button
+        if st.button("🗑️ Очистити"):
+            st.session_state.text_input = ""
+            st.rerun()
     
     if st.button("🔍 Аналізувати", type="primary"):
         if text_input:
@@ -211,6 +227,11 @@ with tab1:
                 st.markdown(f"**Пояснення:** {result['explanation_uk']}")
                 st.markdown(f"**Час обробки:** {result['processing_time_ms']:.2f} мс")
                 st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Add clear button after analysis
+                if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
+                    st.session_state.text_input = ""
+                    st.rerun()
         else:
             st.warning("Будь ласка, введіть текст для аналізу")
 
