@@ -10,7 +10,8 @@ st.set_page_config(
     page_title="TruthLens UA Analytics v2.1",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items=None  # Disable default menu items
 )
 
 # Force cache clearing
@@ -23,6 +24,13 @@ st.markdown("""
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 """, unsafe_allow_html=True)
+
+# Handle invalid page routes
+current_page = st.runtime.get_instance_id()
+if "Executive_Summary" in current_page or "Source_Credibility" in current_page or "Demo_Cases" in current_page:
+    st.error("🚫 Ця сторінка не існує. Будь ласка, використовуйте основну сторінку.")
+    st.info("📍 Перейдіть до: https://truthlens-ua-analytics.onrender.com")
+    st.stop()
 
 # Custom CSS
 st.markdown("""
