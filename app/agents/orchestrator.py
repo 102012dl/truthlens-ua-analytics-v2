@@ -43,9 +43,9 @@ class TruthLensOrchestrator:
         if override:
             verdict = "FAKE"
             fake_score = max(fake_score, 0.70)  # Ensure high fake_score for IPSO
-        elif fake_score >= 0.45:  # Lowered from 0.65
+        elif fake_score >= 0.55:  # Raised from 0.45 to avoid false positives
             verdict = "FAKE"
-        elif fake_score >= 0.25:  # Lowered from 0.40
+        elif fake_score >= 0.30:  # Raised from 0.25 to match SUSPICIOUS better
             verdict = "SUSPICIOUS"
         else:
             verdict = "REAL"
