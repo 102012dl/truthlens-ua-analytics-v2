@@ -14,9 +14,11 @@ st.set_page_config(
     menu_items=None  # Disable default menu items
 )
 
-# Force cache clearing
+# Поле вводу порожнє при першому завантаженні (без попереднього тексту/URL)
 if "text_input" not in st.session_state:
     st.session_state.text_input = ""
+if "main_text_input" not in st.session_state:
+    st.session_state["main_text_input"] = ""
 
 # Add cache busting
 st.markdown("""
@@ -25,41 +27,20 @@ st.markdown("""
 <meta http-equiv="Expires" content="0">
 """, unsafe_allow_html=True)
 
-# Custom CSS
+# Custom CSS: кольорове відображення результатів, контраст, без зайвих повідомлень про помилки
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
+    .main-header { font-size: 2rem; text-align: center; margin-bottom: 1.5rem; }
     .result-card {
-        background: #f8f9fa;
-        padding: 1.5rem;
+        padding: 1.25rem;
         border-radius: 10px;
-        border-left: 5px solid #007bff;
         margin: 1rem 0;
+        border-left: 5px solid #6c757d;
     }
-    .fake-result {
-        border-left-color: #dc3545;
-        background: #fff5f5;
-    }
-    .real-result {
-        border-left-color: #28a745;
-        background: #f8fff8;
-    }
-    .suspicious-result {
-        border-left-color: #ffc107;
-        background: #fffdf5;
-    }
+    .fake-result   { border-left-color: #dc3545; background-color: rgba(220,53,69,0.08); }
+    .real-result   { border-left-color: #28a745; background-color: rgba(40,167,69,0.08); }
+    .suspicious-result { border-left-color: #f0ad4e; background-color: rgba(240,173,78,0.08); }
+    .metric-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 0.5rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -69,14 +50,18 @@ st.markdown("---")
 
 # Sidebar
 st.sidebar.markdown("### ⚙️ Налаштування")
-default_api_url = os.environ.get("API_URL", "http://127.0.0.1:8000")
-if os.environ.get("RENDER_EXTERNAL_URL"):
-    default_api_url = os.environ.get("RENDER_EXTERNAL_URL")
-elif os.environ.get("ENV", "").lower() == "production":
-    default_api_url = os.environ.get("API_URL", default_api_url)
-if "api_url" not in st.session_state or not st.session_state.api_url:
+# На Render за замовчуванням — тільки вбудований аналіз (без звернення до localhost)
+is_render = "RENDER" in os.environ or bool(os.environ.get("RENDER_EXTERNAL_URL"))
+default_api_url = os.environ.get("API_URL", "")
+if not is_render and not default_api_url:
+    default_api_url = "http://127.0.0.1:8000"
+if "api_url" not in st.session_state:
     st.session_state.api_url = default_api_url
-api_url = st.sidebar.text_input("API URL", key="api_url")
+api_url = st.sidebar.text_input(
+    "API URL (порожньо = тільки вбудований аналіз)",
+    placeholder="http://127.0.0.1:8000" if not is_render else "Вбудований аналіз",
+    key="api_url"
+)
 st.sidebar.markdown("---")
 
 # Built-in analysis function
@@ -162,80 +147,75 @@ with tab1:
     col1, col2 = st.columns([3, 1])
     
     with col1:
+        # Приклади заповнюють саме цей віджет (key main_text_input)
+        prefill = st.session_state.get("main_text_input", "")
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-                        height=100,
-            key="main_text_input"
+            value=prefill,
+            height=120,
+            placeholder="Вставте текст або URL...",
+            key="main_text_input",
+            label_visibility="visible"
         )
-        # Update session state
         st.session_state.text_input = text_input
     
     with col2:
         st.markdown("### Приклади")
-        if st.button("📰 Фейк"):
-            st.session_state.text_input = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
+        if st.button("🔴 Фейк", key="ex_fake", help="Типовий текст фейкової новини"):
+            st.session_state["main_text_input"] = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
             st.rerun()
-        if st.button("✅ Реальна"):
-            st.session_state.text_input = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
+        if st.button("🟢 Реальна", key="ex_real", help="Типовий текст достовірної новини"):
+            st.session_state["main_text_input"] = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
             st.rerun()
-        if st.button("⚠️ Підозріла"):
-            st.session_state.text_input = "Експерти попереджають про можливу економічну кризу через світові ринки."
+        if st.button("🟡 Підозріла", key="ex_susp", help="Текст, що потребує перевірки"):
+            st.session_state["main_text_input"] = "Експерти попереджають про можливу економічну кризу через світові ринки."
             st.rerun()
         
-        # Add clear button
-        if st.button("🗑️ Очистити"):
-            st.session_state.text_input = ""
+        if st.button("🗑️ Очистити", key="ex_clear"):
+            st.session_state["main_text_input"] = ""
             st.rerun()
     
     if st.button("🔍 Аналізувати", type="primary"):
         if text_input:
             with st.spinner("Аналізую текст..."):
-                # Спробуємо API, якщо не працює - використаємо вбудовану функцію
-                try:
-                    normalized_api_url = api_url.strip().rstrip("/")
-                    if normalized_api_url.startswith("http://localhost:"):
-                        normalized_api_url = normalized_api_url.replace("http://localhost:", "http://127.0.0.1:")
-                    elif normalized_api_url.startswith("https://localhost:"):
-                        normalized_api_url = normalized_api_url.replace("https://localhost:", "https://127.0.0.1:")
-                    elif normalized_api_url == "http://localhost":
-                        normalized_api_url = "http://127.0.0.1"
-                    elif normalized_api_url == "https://localhost":
-                        normalized_api_url = "https://127.0.0.1"
+                result = None
+                api_url_clean = (api_url or "").strip().rstrip("/")
+                # На Render або при localhost — не викликати API, щоб не показувати помилки підключення
+                if is_render or (api_url_clean and "localhost" in api_url_clean):
+                    api_url_clean = ""
 
-                    candidate_urls = [normalized_api_url]
+                # Якщо API URL порожній — тільки вбудований аналіз (без повідомлень про помилки)
+                if api_url_clean:
+                    try:
+                        normalized_api_url = api_url_clean
+                        if normalized_api_url.startswith("http://localhost:"):
+                            normalized_api_url = normalized_api_url.replace("http://localhost:", "http://127.0.0.1:")
+                        elif normalized_api_url.startswith("https://localhost:"):
+                            normalized_api_url = normalized_api_url.replace("https://localhost:", "https://127.0.0.1:")
+                        elif normalized_api_url in ("http://localhost", "https://localhost"):
+                            normalized_api_url = normalized_api_url.replace("localhost", "127.0.0.1")
 
-                    payload = {"text": text_input}
-                    if re.match(r"^https?://", text_input.strip(), re.IGNORECASE):
-                        payload = {"url": text_input.strip()}
+                        payload = {"text": text_input}
+                        if re.match(r"^https?://", text_input.strip(), re.IGNORECASE):
+                            payload = {"url": text_input.strip()}
 
-                    last_error = None
-                    result = None
+                        response = requests.post(
+                            f"{normalized_api_url}/check",
+                            json=payload,
+                            timeout=10
+                        )
+                        if response.status_code == 200:
+                            result = response.json()
+                            st.success(f"✅ Аналіз виконано через API ({normalized_api_url})")
+                    except Exception:
+                        result = analyze_text_locally(text_input)
+                        st.success("✅ Аналіз виконано (вбудована модель)")
 
-                    for candidate_url in list(dict.fromkeys(candidate_urls)):
-                        try:
-                            response = requests.post(
-                                f"{candidate_url}/check",
-                                json=payload,
-                                timeout=5
-                            )
-
-                            if response.status_code == 200:
-                                result = response.json()
-                                st.success(f"✅ Аналіз виконано через API ({candidate_url})")
-                                break
-
-                            last_error = f"{candidate_url}: API error {response.status_code} - {response.text[:300]}"
-                        except Exception as request_error:
-                            last_error = f"{candidate_url}: {request_error}"
-
-                    if result is None:
-                        raise Exception(last_error or "Unknown API error")
-
-                except Exception as e:
-                    st.warning(f"⚠️ API недоступний, використовується вбудований аналіз ({e})")
+                if result is None:
                     result = analyze_text_locally(text_input)
+                    st.success("✅ Аналіз виконано (вбудована модель)")
                 
-                # Display result
+                # Візуалізація результату: кольори, метрики, графіка
                 verdict_class = ""
                 if result["verdict"] == "FAKE":
                     verdict_class = "fake-result"
@@ -246,28 +226,25 @@ with tab1:
                 else:
                     verdict_class = "suspicious-result"
                     emoji = "🟡"
-                
-                # Display result
+
                 st.markdown(f'<div class="result-card {verdict_class}">', unsafe_allow_html=True)
-                st.markdown(f"### {emoji} Вердикт: {result['verdict']}")
-                st.markdown(f"**Рейтинг довіри:** {result['credibility_score']:.1f}%")
-                st.markdown(f"**Fake Score:** {result['fake_score']:.3f}")
-                st.markdown(f"**Впевненість:** {result['confidence']:.1%}")
-                
-                if result['ipso_techniques']:
-                    st.markdown("**Виявлені ІПСО техніки:**")
-                    for technique in result['ipso_techniques']:
-                        st.markdown(f"- {technique}")
+                st.markdown(f"### {emoji} Вердикт: **{result['verdict']}**")
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Рейтинг довіри", f"{result['credibility_score']:.1f}%", None)
+                m2.metric("Fake Score", f"{result['fake_score']:.3f}", None)
+                m3.metric("Впевненість", f"{result['confidence']:.0%}", None)
+                m4.metric("Час", f"{result['processing_time_ms']:.0f} мс", None)
+                if result.get('ipso_techniques'):
+                    st.markdown("**Виявлені ІПСО техніки:** " + ", ".join(result['ipso_techniques']))
                 else:
-                    st.markdown("**ІПСО техніки:** Не виявлено")
-                
-                st.markdown(f"**Пояснення:** {result['explanation_uk']}")
-                st.markdown(f"**Час обробки:** {result['processing_time_ms']:.2f} мс")
+                    st.caption("ІПСО техніки: не виявлено")
+                st.info(result['explanation_uk'])
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Add clear button after analysis
                 if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
                     st.session_state.text_input = ""
+                    st.session_state["main_text_input"] = ""
                     st.rerun()
         else:
             st.warning("Будь ласка, введіть текст для аналізу")

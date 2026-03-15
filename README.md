@@ -142,146 +142,96 @@ graph TD
 
 ---
 
-## 🚀 Швидкий старт
+## 🚀 Швидкий старт (NMVP1 — робочі рішення)
 
-### Вимоги
-- Docker & Docker Compose
-- Python 3.10+ (для локального запуску)
+Усі команди виконувати **з кореня репо** (після `cd truthlens-ua-analytics`). Якщо `.\start.ps1` не знайдено — спочатку виконайте `cd` у папку клону.
 
-### 🎯 Найпростіший запуск (Автоматично)
+### Посилання для перевірки
 
-**Windows:**
+| Ресурс | URL |
+|--------|-----|
+| **Live (Render)** | https://truthlens-ua-analytics.onrender.com |
+| **GitHub** | https://github.com/102012dl/truthlens-ua-analytics |
+| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics |
+
+### 1. Docker (рекомендовано)
+
+```bash
+git clone https://github.com/102012dl/truthlens-ua-analytics.git
+cd truthlens-ua-analytics
+docker-compose up --build -d
+```
+
+**Перевірка:** http://localhost:8501 (дашборд), http://localhost:8000/docs (API).
+
+### 2. Windows PowerShell
+
 ```powershell
-# Запустіть в PowerShell:
+git clone https://github.com/102012dl/truthlens-ua-analytics.git
+cd truthlens-ua-analytics
 .\start.ps1
 ```
 
-**Linux/Mac:**
+**Перевірка:** відкрити http://localhost:8501
+
+### 3. WSL / Linux
+
 ```bash
-# Запустіть в терміналі:
+git clone https://github.com/102012dl/truthlens-ua-analytics.git
+cd truthlens-ua-analytics
 chmod +x start.sh
 ./start.sh
 ```
 
-**Або вручну:**
+**Перевірка:** відкрити http://localhost:8501
+
+### 4. Вручну (два термінали)
+
 ```bash
-# 1. Клонування
-git clone https://github.com/102012dl/truthlens-ua-analytics.git
 cd truthlens-ua-analytics
-
-# 2. Запуск (одна команда)
-# Windows: .\start.ps1
-# Linux/Mac: ./start.sh
+# Термінал 1
+python -m uvicorn app.main:app --reload --port 8000
+# Термінал 2
+streamlit run dashboard/app.py --server.port 8501
 ```
 
-### 🌐 Cloud Deploy (1 хвилина)
+---
 
-**🎯 Найшвидший спосіб - автоматичний деплой:**
+### 🌐 Деплой на Render
 
-**Крок 1: Підключіть GitHub до Render**
-1. Перейдіть на https://render.com
-2. Login з GitHub: `102012dl` (email: 102012dl@gmail.com)
-3. Connect: https://github.com/102012dl/truthlens-ua-analytics
+- Підключити репо: https://github.com/102012dl/truthlens-ua-analytics  
+- Build: `pip install -r requirements.txt` (або з `dashboard/` за інструкціями Render)  
+- Start: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`  
+- Live: **https://truthlens-ua-analytics.onrender.com**
 
-**Крок 2: Створіть Web Service**
-- Name: `truthlens-ua`
-- Runtime: `Python 3`
-- Build: `pip install -r requirements.txt`
-- Start: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`
+---
 
-**Крок 3: Deploy!**
-Натисніть "Create Web Service" і чекайте 2 хвилини.
-
-**🚀 Готово! Ваш додаток доступний: https://truthlens-ua.onrender.com**
-
-**📱 Автоматична перевірка:**
-```bash
-python check_render.py --wait
-```
-
-### Запуск через Docker (Рекомендовано)
-
-```bash
-# 1. Клонування репозиторію
-git clone https://github.com/102012dl/truthlens-ua-analytics.git
-cd truthlens-ua-analytics
-
-# 2. Запуск сервісів
-docker-compose up --build -d
-
-# 3. Перевірка статусу
-docker-compose ps
-```
-
-**Доступ:**
-- Web Dashboard: http://localhost:8501
-- API Docs: http://localhost:8000/docs
-- Health Check: http://localhost:8000/health
-
-### Локальний запуск
+### Локальний запуск (детально)
 
 **Windows (PowerShell):**
 ```powershell
-# 1. Встановлення залежностей
+cd truthlens-ua-analytics
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 2. Запуск API (в одному терміналі)
+# Термінал 1:
 python -m uvicorn app.main:app --reload --port 8000
-
-# 3. Запуск Dashboard (в іншому терміналі)
+# Термінал 2:
 streamlit run dashboard/app.py --server.port 8501
-```
-
-**Linux/Mac:**
-```bash
-# 1. Встановлення залежностей
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# 2. Запуск API (в одному терміналі)
-python -m uvicorn app.main:app --reload --port 8000
-
-# 3. Запуск Dashboard (в іншому терміналі)
-streamlit run dashboard/app.py --server.port 8501
-```
-
-### Швидкий запуск після перезапуску комп'ютера
-
-**Windows PowerShell:**
-```powershell
-cd C:\Users\home2\Downloads\truthlens-ua-analytics
-python -m uvicorn app.main:app --reload --port 8000
-```
-
-```powershell
-cd C:\Users\home2\Downloads\truthlens-ua-analytics\dashboard
-streamlit run app.py --server.port 8501
 ```
 
 **WSL / Linux:**
 ```bash
-cd /mnt/c/Users/home2/Downloads/truthlens-ua-analytics
-python -m uvicorn app.main:app --reload --port 8000
+cd truthlens-ua-analytics
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+# Термінал 1: python -m uvicorn app.main:app --reload --port 8000
+# Термінал 2: streamlit run dashboard/app.py --server.port 8501
 ```
 
-```bash
-cd /mnt/c/Users/home2/Downloads/truthlens-ua-analytics/dashboard
-streamlit run app.py --server.port 8501
-```
+**Перевірка (локально):** http://localhost:8501 та http://localhost:8000/health
 
-**Docker:**
-```bash
-docker-compose up --build
-```
-
-**Перевірка API:**
-```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
-Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/check" -ContentType "application/json" -Body '{"text":"Тестова новина для перевірки"}'
-```
+**Синхронізація репо:** після змін виконати `git add .` → `git commit -m "..."` → `git push origin main` (GitHub); GitLab дзеркалиться через CI за потреби.
 
 ### 📱 Швидкий доступ
 

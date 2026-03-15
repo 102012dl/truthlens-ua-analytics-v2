@@ -32,7 +32,7 @@ fi
 echo
 echo "[4/4] Starting services..."
 echo "Starting API server in background..."
-python -m uvicorn app.api.main:app --reload --port 8000 &
+python -m uvicorn app.main:app --reload --port 8000 &
 API_PID=$!
 
 echo "Waiting for API to start..."

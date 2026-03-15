@@ -1,5 +1,26 @@
 # TruthLens UA Analytics - Quick Start Guide
 
+## ⚠️ Важливо: запуск скриптів з кореня репо
+
+Скрипти **start.ps1** (Windows) та **start.sh** (Linux/Mac) потрібно запускати **з папки репозиторію**:
+
+```powershell
+# Windows PowerShell
+cd C:\Users\home2\truthlens-ua-analytics
+.\start.ps1
+```
+
+```bash
+# Linux / WSL / Mac
+cd ~/truthlens-ua-analytics
+chmod +x start.sh
+./start.sh
+```
+
+Якщо ви бачите помилку `.\start.ps1 : The term '.\start.ps1' is not recognized` — спочатку виконайте `cd truthlens-ua-analytics` (або повний шлях до клону).
+
+---
+
 ## 🚀 Швидкий запуск (Windows)
 
 ### 1. Простий локальний запуск
@@ -9,14 +30,14 @@
 git clone https://github.com/102012dl/truthlens-ua-analytics.git
 cd truthlens-ua-analytics
 
-# 2. Створення .env файл
+# 2. Створення .env (опційно)
 echo "MODEL_PATH=artifacts/best_model.joblib" > .env
 
 # 3. Запуск API (в одному терміналі)
-python -m uvicorn app.api.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 
 # 4. Запуск Dashboard (в іншому терміналі)
-streamlit run dashboard/app.py
+streamlit run dashboard/app.py --server.port 8501
 ```
 
 ### 2. Альтернативний запуск через Render
