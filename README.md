@@ -148,6 +148,31 @@ graph TD
 - Docker & Docker Compose
 - Python 3.10+ (для локального запуску)
 
+### 🎯 Найпростіший запуск (Windows)
+
+**Двічі клікніть на `start.bat`** - автоматично запустить все необхідне!
+
+```bash
+# Або вручну:
+# 1. Клонування
+git clone https://github.com/102012dl/truthlens-ua-analytics.git
+cd truthlens-ua-analytics
+
+# 2. Запуск (одна команда)
+start.bat
+```
+
+### 🌐 Cloud Deploy (1 хвилина)
+
+**Deploy на Render без локальної установки:**
+1. Перейдіть на https://render.com
+2. Підключіть GitHub: https://github.com/102012dl/truthlens-ua-analytics
+3. Web Service → Python
+4. Build: `pip install -r requirements.txt`
+5. Start: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`
+
+**Готово! 🚀 Доступ: https://truthlens-ua.onrender.com**
+
 ### Запуск через Docker (Рекомендовано)
 
 ```bash
@@ -176,11 +201,36 @@ source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# 2. Запуск API
-uvicorn app.api.main:app --reload --port 8000 &
+# 2. Запуск API (в одному терміналі)
+python -m uvicorn app.api.main:app --reload --port 8000
 
-# 3. Запуск UI
-streamlit run dashboard/pages/Home.py
+# 3. Запуск Dashboard (в іншому терміналі)
+streamlit run dashboard/app.py
+```
+
+### 📱 Швидкий доступ
+
+| Спосіб | Час запуску | Складність | Рекомендовано |
+|--------|------------|------------|--------------|
+| **start.bat** | 1 клік | 🟢 Легко | ✅ Windows |
+| **Render** | 1 хвилина | 🟢 Легко | ✅ Cloud |
+| **Docker** | 3 хвилини | 🟡 Середньо | ✅ Production |
+| **Local** | 5 хвилин | 🟡 Середньо | ⚠️ Development |
+
+### 🔧 Вирішення проблем
+
+**❌ Поширені помилки:**
+- `dashboard/pages/Home.py не знайдено` → використовуйте `dashboard/app.py`
+- `source не розпізнано` → використовуйте `start.bat` або `venv\Scripts\activate`
+- `Docker не запускається` → створіть `.env` файл (див. `.env.example`)
+
+**✅ Перевірка роботи:**
+```bash
+# Test API
+curl http://localhost:8000/health
+
+# Test Dashboard
+streamlit run dashboard/app.py
 ```
 
 ---
@@ -422,6 +472,16 @@ LOG_LEVEL=INFO
 ## 📄 Ліцензія
 
 MIT License - див. файл [LICENSE](LICENSE).
+
+---
+
+## 🌐 Репозиторії проекту
+
+| Платформа | Посилання | Статус |
+|-----------|-----------|--------|
+| **GitHub** | https://github.com/102012dl/truthlens-ua-analytics | ✅ Основний |
+| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | ✅ Backup |
+| **Render** | https://truthlens-ua.onrender.com | 🚀 Live Demo |
 
 ---
 
