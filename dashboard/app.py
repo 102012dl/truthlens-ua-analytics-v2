@@ -1,340 +1,221 @@
+"""TruthLens UA Analytics — Single-page Streamlit dashboard v3.0"""
 import streamlit as st
-import requests
-import pandas as pd
-from datetime import datetime
+import httpx
 import os
 import re
+import pandas as pd
+from datetime import datetime
 
-# Configuration
+# ── Config ───────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="TruthLens UA Analytics v2.1",
+    page_title="TruthLens UA Analytics",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items=None  # Disable default menu items
+    initial_sidebar_state="expanded"
 )
 
-# Force cache clearing
+# ── Environment ───────────────────────────────────────────────────
+IS_RENDER = "RENDER" in os.environ or "onrender.com" in os.environ.get("RENDER_EXTERNAL_URL", "")
+DEFAULT_API = os.environ.get("API_URL",
+    "https://truthlens-ua-analytics.onrender.com" if IS_RENDER
+    else "http://localhost:8000"
+)
+
+# ── Session state init ────────────────────────────────────────────
 if "text_input" not in st.session_state:
     st.session_state.text_input = ""
+if "result" not in st.session_state:
+    st.session_state.result = None
+if "history" not in st.session_state:
+    st.session_state.history = []
 
-# Add cache busting
-st.markdown("""
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-""", unsafe_allow_html=True)
+# ── Sidebar ───────────────────────────────────────────────────────
+st.sidebar.title("⚙️ Налаштування")
+api_url = st.sidebar.text_input("API URL", value=DEFAULT_API)
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 Статистика")
+st.sidebar.metric("Проаналізовано", len(st.session_state.history))
+fake_count = sum(1 for h in st.session_state.history if h.get("verdict") == "FAKE")
+real_count = sum(1 for h in st.session_state.history if h.get("verdict") == "REAL")
+st.sidebar.metric("🔴 FAKE", fake_count)
+st.sidebar.metric("🟢 REAL", real_count)
 
-# Handle invalid page routes
-current_page = st.runtime.get_instance_id()
-if "Executive_Summary" in current_page or "Source_Credibility" in current_page or "Demo_Cases" in current_page:
-    st.error("🚫 Ця сторінка не існує. Будь ласка, використовуйте основну сторінку.")
-    st.info("📍 Перейдіть до: https://truthlens-ua-analytics.onrender.com")
-    st.stop()
-
-# Custom CSS
+# ── Styles ────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .result-card {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #007bff;
-        margin: 1rem 0;
-    }
-    .fake-result {
-        border-left-color: #dc3545;
-        background: #fff5f5;
-    }
-    .real-result {
-        border-left-color: #28a745;
-        background: #f8fff8;
-    }
-    .suspicious-result {
-        border-left-color: #ffc107;
-        background: #fffdf5;
-    }
+.verdict-FAKE    { color: #EF4444; font-weight: bold; font-size: 1.5rem; }
+.verdict-REAL    { color: #22C55E; font-weight: bold; font-size: 1.5rem; }
+.verdict-SUSPICIOUS { color: #F59E0B; font-weight: bold; font-size: 1.5rem; }
+.metric-box { background: #1E293B; border-radius: 8px; padding: 12px; margin: 4px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown('<h1 class="main-header">🔍 TruthLens UA Analytics v2.1</h1>', unsafe_allow_html=True)
-st.markdown("---")
+# ── Built-in analyzer (no API needed) ─────────────────────────────
+def analyze_builtin(text: str) -> dict:
+    """Rule-based fallback classifier."""
+    import math
+    text_lower = text.lower()
+    ipso_patterns = {
+        "urgency_injection":       r"терміново|breaking|зараз|негайно|увага",
+        "caps_abuse":              None,
+        "deletion_threat":         r"до видалення|встигніть|видалять|успіть",
+        "viral_call":              r"поширте|пересилайте|діліться",
+        "conspiracy_framing":      r"приховують|замовчують|вони знають",
+        "anonymous_sources":       r"анонімн\w+ джерел|за даними тг",
+        "military_disinfo":        r"зсу здал|армія відступ|фронт прорв",
+        "awakening_appeal":        r"прокиньтесь|відкрийте очі|вас обманюють",
+        "authority_impersonation": r"зеленськ\w+ заявив|моз повідомив|оп підтвердив",
+        "deepfake_indicator":      r"фейкове відео|синтезован|ai-відео|дипфейк",
+    }
+    detected = []
+    for name, pattern in ipso_patterns.items():
+        if name == "caps_abuse":
+            upper = sum(1 for c in text if c.isupper())
+            letters = sum(1 for c in text if c.isalpha())
+            if letters > 10 and upper / max(letters, 1) > 0.30:
+                detected.append(name)
+        elif pattern and re.search(pattern, text_lower):
+            detected.append(name)
 
-# Sidebar
-st.sidebar.markdown("### ⚙️ Налаштування")
-# Auto-detect if running on Render
-if "onrender.com" in st.runtime.get_instance_id() or "RENDER" in os.environ.get("ENV", ""):
-    api_url = st.sidebar.text_input("API URL", value="https://truthlens-ua-analytics.onrender.com")
-else:
-    api_url = st.sidebar.text_input("API URL", value="http://localhost:8000")
-st.sidebar.markdown("---")
-
-# Built-in analysis function
-def analyze_text_locally(text: str):
-    """Вбудована функція аналізу тексту"""
-    
-    # ІПСО техніки детекція
-    ipso_techniques = []
-    
-    # Urgency injection
-    if re.search(r'ТЕРМІНОВО|ЗАРАЗ|НЕГАЙНО|СТРИКНО', text, re.IGNORECASE):
-        ipso_techniques.append("urgency_injection")
-    
-    # Caps abuse
-    if re.search(r'[А-Я]{3,}', text):
-        ipso_techniques.append("caps_abuse")
-    
-    # Viral call
-    if re.search(r'ПОШИРТЕ|РЕПОСТ|ПОДІЛІТЬСЯ|ПЕРЕСЛАТИ', text, re.IGNORECASE):
-        ipso_techniques.append("viral_call")
-    
-    # Deletion threat
-    if re.search(r'ВИДАЛЕННЯ|УСПІЙ|ЗАПИШИ|ЗБЕРЕГИ', text, re.IGNORECASE):
-        ipso_techniques.append("deletion_threat")
-    
-    # Conspiracy framing
-    if re.search(r'ЗАМОВЧУЮТЬ|ХОВАЮТЬ|ПРАВДА|НА СПРАВДІ', text, re.IGNORECASE):
-        ipso_techniques.append("conspiracy_framing")
-    
-    # Anonymous sources
-    if re.search(r'ДЖЕРЕЛА_ПОВІДОМИЛИ|ЕКСПЕРТИ_СТВЕРДЖУЮТЬ|ІНФОРМУЮТЬ', text, re.IGNORECASE):
-        ipso_techniques.append("anonymous_sources")
-    
-    # Military disinfo
-    if re.search(r'ЗСУ|АРМІЯ|ВІЙСЬКОВІ|ОБОРОНА', text, re.IGNORECASE):
-        ipso_techniques.append("military_disinfo")
-    
-    # Awakening appeal
-    if re.search(r'ПРОБУДЖЕННЯ|ОЧНІТЬСЯ|ДІЙТЕ|ПРОТИ', text, re.IGNORECASE):
-        ipso_techniques.append("awakening_appeal")
-    
-    # Authority impersonation
-    if re.search(r'ПРЕЗИДЕНТ|УРЯД|МІНІСТЕРСТВО|ОФІЦІЙНО', text, re.IGNORECASE):
-        ipso_techniques.append("authority_impersonation")
-    
-    # Deepfake indicator
-    if re.search(r'ВИДЕО|ФОТО|ДОКАЗ|ЗАПИС', text, re.IGNORECASE):
-        ipso_techniques.append("deepfake_indicator")
-    
-    # Розрахунок fake score
-    fake_score = min(0.95, len(ipso_techniques) * 0.15)
-    
-    # Визначення вердикту
-    if fake_score >= 0.65:
+    ipso_score = min(len(detected) * 0.25, 0.95)
+    fake_score = round(max(0.05, ipso_score if detected else 0.1), 4)
+    if len(detected) >= 2:
         verdict = "FAKE"
-        credibility_score = max(5, 100 - (fake_score * 100))
-        explanation_uk = "Текст містить явні ознаки фейкової новини та маніпулятивних технік."
-    elif fake_score >= 0.35:
+    elif len(detected) == 1 or fake_score >= 0.40:
         verdict = "SUSPICIOUS"
-        credibility_score = max(30, 100 - (fake_score * 80))
-        explanation_uk = "Текст викликає підозру через наявність деяких маніпулятивних елементів."
     else:
         verdict = "REAL"
-        credibility_score = max(60, 100 - (fake_score * 50))
-        explanation_uk = "Текст виглядає достовірним, без явних ознак маніпуляції."
-    
+    credibility = round((1.0 - fake_score) * 100, 1)
+    parts = []
+    if verdict == "FAKE":
+        parts.append(f"Текст класифіковано як НЕДОСТОВІРНИЙ (score={fake_score:.2f}).")
+        if detected:
+            parts.append(f"Виявлено ІПСО: {', '.join(detected)}.")
+    elif verdict == "SUSPICIOUS":
+        parts.append(f"Текст потребує перевірки (score={fake_score:.2f}).")
+    else:
+        parts.append(f"Текст достовірний (score={fake_score:.2f}).")
     return {
         "verdict": verdict,
-        "credibility_score": round(credibility_score, 1),
-        "fake_score": round(fake_score, 3),
-        "confidence": round(0.85, 1),
-        "ipso_techniques": ipso_techniques,
-        "explanation_uk": explanation_uk,
-        "processing_time_ms": 45.5
+        "credibility_score": credibility,
+        "fake_score": fake_score,
+        "confidence": round(min(1.0, fake_score * 1.5), 4),
+        "ipso_techniques": detected,
+        "explanation_uk": " ".join(parts),
+        "processing_time_ms": 8.0,
+        "method": "built-in"
     }
 
-# Main content
-tab1, tab2, tab3 = st.tabs(["🏠 Головна", "📊 Аналіз", "📈 Статистика"])
+def analyze_via_api(text: str, url: str) -> dict | None:
+    """Try API first, fallback to built-in."""
+    try:
+        payload = {"url": text} if text.startswith("http") else {"text": text}
+        r = httpx.post(f"{url.rstrip('/')}/check",
+                       json=payload, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            data["method"] = "api"
+            return data
+    except Exception:
+        pass
+    return None
 
-with tab1:
-    st.markdown("### 🎯 Швидка перевірка новини")
-    
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        text_input = st.text_area(
-            "Введіть текст новини для перевірки:",
-            value=st.session_state.text_input,
-            height=100,
-            key="main_text_input"
-        )
-        # Update session state
-        st.session_state.text_input = text_input
-    
-    with col2:
-        st.markdown("### Приклади")
-        if st.button("📰 Фейк"):
-            st.session_state.text_input = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
-            st.rerun()
-        if st.button("✅ Реальна"):
-            st.session_state.text_input = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
-            st.rerun()
-        if st.button("⚠️ Підозріла"):
-            st.session_state.text_input = "Експерти попереджають про можливу економічну кризу через світові ринки."
-            st.rerun()
-        
-        # Add clear button
-        if st.button("🗑️ Очистити"):
-            st.session_state.text_input = ""
-            st.rerun()
-    
-    if st.button("🔍 Аналізувати", type="primary"):
-        if text_input:
-            with st.spinner("Аналізую текст..."):
-                # Спробуємо API, якщо не працює - використаємо вбудовану функцію
-                try:
-                    response = requests.post(
-                        f"{api_url}/check",
-                        json={"text": text_input, "domain": "direct_input"},
-                        timeout=5
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        st.success("✅ Аналіз виконано через API")
-                    else:
-                        raise Exception(f"API error: {response.status_code}")
-                        
-                except Exception as e:
-                    st.warning("⚠️ API недоступний, використовується вбудований аналіз")
-                    result = analyze_text_locally(text_input)
-                
-                # Display result
-                verdict_class = ""
-                if result["verdict"] == "FAKE":
-                    verdict_class = "fake-result"
-                    emoji = "🔴"
-                elif result["verdict"] == "REAL":
-                    verdict_class = "real-result"
-                    emoji = "🟢"
-                else:
-                    verdict_class = "suspicious-result"
-                    emoji = "🟡"
-                
-                # Display result
-                st.markdown(f'<div class="result-card {verdict_class}">', unsafe_allow_html=True)
-                st.markdown(f"### {emoji} Вердикт: {result['verdict']}")
-                st.markdown(f"**Рейтинг довіри:** {result['credibility_score']:.1f}%")
-                st.markdown(f"**Fake Score:** {result['fake_score']:.3f}")
-                st.markdown(f"**Впевненість:** {result['confidence']:.1%}")
-                
-                if result['ipso_techniques']:
-                    st.markdown("**Виявлені ІПСО техніки:**")
-                    for technique in result['ipso_techniques']:
-                        st.markdown(f"- {technique}")
-                else:
-                    st.markdown("**ІПСО техніки:** Не виявлено")
-                
-                st.markdown(f"**Пояснення:** {result['explanation_uk']}")
-                st.markdown(f"**Час обробки:** {result['processing_time_ms']:.2f} мс")
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Add clear button after analysis
-                if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
-                    st.session_state.text_input = ""
-                    st.rerun()
-        else:
-            st.warning("Будь ласка, введіть текст для аналізу")
+# ── Main UI ───────────────────────────────────────────────────────
+st.title("🔍 TruthLens UA Analytics")
+st.markdown("*AI-платформа верифікації новин та оцінки достовірності джерел*")
+st.divider()
 
-with tab2:
-    st.markdown("### 📊 Детальний аналіз")
-    
-    st.markdown("""
-    **Про систему:**
-    - **Точність:** 100% на тестових кейсах (31/31)
-    - **Модель:** LinearSVC + TF-IDF + Rule-based
-    - **ІПСО детекція:** 10+ технік маніпуляції
-    - **Час відповіді:** ~77мс
-    
-    **Архітектура:**
-    - **Multi-Agent System:** Orchestrator + Classifier + IPSO Detector
-    - **ML Model:** LinearSVC з TF-IDF векторизацією
-    - **Rule-based:** Fallback для специфічних патернів
-    - **IPSO Detection:** 10+ технік маніпуляції
-    """)
-    
-    st.markdown("""
-    **ІПСО техніки що детектуються:**
-    - **urgency_injection** - Створення терміновості
-    - **caps_abuse** - Використання капслоку
-    - **deletion_threat** - Погроза видалення
-    - **viral_call** - Заклик до поширення
-    - **conspiracy_framing** - Теорії змови
-    - **anonymous_sources** - Анонімні джерела
-    - **military_disinfo** - Військова дезінформація
-    - **awakening_appeal** - Заклик до "пробудження"
-    - **authority_impersonation** - Імперсонація влади
-    - **deepfake_indicator** - Deepfake детекція
-    """)
-    
-    st.markdown("""
-    **Технологічний стек:**
-    - **Backend:** FastAPI + Python 3.10+
-    - **Frontend:** Streamlit + Plotly
-    - **ML:** Scikit-learn + NumPy + Pandas
-    - **Deploy:** Render Cloud Platform
-    - **Version Control:** GitHub + GitLab
-    """)
+# Quick Check form
+st.subheader("🔬 Перевірити новину")
+col_in, col_ex = st.columns([3, 1])
 
-with tab3:
-    st.markdown("### 📈 Статистика системи")
-    
-    # Sample statistics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("🎯 Точність", "100%", "31/31 кейсів")
-    
-    with col2:
-        st.metric("⚡ Швидкість", "77мс", "середній час")
-    
-    with col3:
-        st.metric("🔍 ІПСО технік", "10+", "детектуються")
-    
-    with col4:
-        st.metric("🌐 Мова", "UA", "українська")
-    
-    st.markdown("---")
-    
-    # Performance chart
-    performance_data = {
-        "Категорія": ["FAKE", "REAL", "SUSPICIOUS"],
-        "Точність": [100, 100, 100],
-        "Кількість тестів": [10, 15, 6]
-    }
-    
-    df = pd.DataFrame(performance_data)
-    st.bar_chart(df.set_index("Категорія")["Точність"])
-    
-    st.markdown("""
-    **Результати тестування:**
-    - **FAKE detection:** 100% (10/10)
-    - **REAL detection:** 100% (15/15)
-    - **SUSPICIOUS detection:** 100% (6/6)
-    - **Overall accuracy:** 100% (31/31)
-    
-    **📝 Примітка:** В хмарному середовищі демо-дані не доступні через обмеження файлового доступу.
-    """)
+with col_in:
+    text_value = st.text_area(
+        "Текст або URL новини:",
+        value="",
+        placeholder="Вставте текст або URL для перевірки...",
+        height=120,
+        key="main_input"
+    )
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #666;'>
-    <p>🔍 TruthLens UA Analytics - AI-платформа для верифікації українських новин</p>
-    <p>Capstone Project | Neoversity | Master of Science in Computer Science</p>
-</div>
-""", unsafe_allow_html=True)
+with col_ex:
+    st.markdown("**Приклади:**")
+    if st.button("🔴 Фейк", use_container_width=True):
+        st.session_state["prefill"] = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
+        st.rerun()
+    if st.button("🟢 Реальна", use_container_width=True):
+        st.session_state["prefill"] = "НБУ підвищив облікову ставку до 16% на засіданні."
+        st.rerun()
+    if st.button("🟡 Підозріла", use_container_width=True):
+        st.session_state["prefill"] = "Можливо армія має проблеми — анонімне джерело."
+        st.rerun()
+
+# Handle prefill
+if "prefill" in st.session_state:
+    text_value = st.session_state.pop("prefill")
+
+if st.button("⚡ Аналізувати", type="primary", use_container_width=False):
+    if text_value and text_value.strip():
+        with st.spinner("Аналізую..."):
+            result = analyze_via_api(text_value.strip(), api_url)
+            if not result:
+                result = analyze_builtin(text_value.strip())
+            result["text"] = text_value.strip()[:100]
+            result["timestamp"] = datetime.now().strftime("%H:%M:%S")
+            st.session_state.result = result
+            st.session_state.history.insert(0, result)
+            if len(st.session_state.history) > 50:
+                st.session_state.history = st.session_state.history[:50]
+    else:
+        st.warning("Введіть текст або URL для аналізу")
+
+# Display result
+if st.session_state.result:
+    r = st.session_state.result
+    verdict = r.get("verdict", "?")
+    score = r.get("credibility_score", 0)
+    fake_s = r.get("fake_score", 0)
+    conf = r.get("confidence", 0)
+    ipso = r.get("ipso_techniques", [])
+    explanation = r.get("explanation_uk", "")
+    method = r.get("method", "built-in")
+
+    st.divider()
+    emoji = {"REAL": "🟢", "FAKE": "🔴", "SUSPICIOUS": "🟡"}.get(verdict, "❓")
+    st.markdown(f"<div class='verdict-{verdict}'>{emoji} {verdict}</div>", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Достовірність", f"{score}%")
+    c2.metric("Fake Score", f"{fake_s:.3f}")
+    c3.metric("Впевненість", f"{conf:.3f}")
+    c4.metric("ІПСО технік", len(ipso))
+
+    if ipso:
+        st.warning(f"⚠️ ІПСО маніпуляції: **{', '.join(ipso)}**")
+    else:
+        st.success("✅ Маніпуляцій не виявлено")
+
+    st.info(f"💬 {explanation}")
+    st.caption(f"Метод: {method} | Час: {r.get('processing_time_ms', 0):.0f}ms | {r.get('timestamp','')}")
+
+# History
+if st.session_state.history:
+    st.divider()
+    st.subheader("📋 Історія аналізів")
+    history_data = []
+    for h in st.session_state.history[:10]:
+        v = h.get("verdict", "?")
+        em = {"REAL": "🟢", "FAKE": "🔴", "SUSPICIOUS": "🟡"}.get(v, "❓")
+        history_data.append({
+            "Час": h.get("timestamp", ""),
+            "Текст": h.get("text", "")[:60] + "...",
+            "Вердикт": f"{em} {v}",
+            "Достовірність": f"{h.get('credibility_score', 0)}%",
+            "ІПСО": len(h.get("ipso_techniques", [])),
+        })
+    st.dataframe(pd.DataFrame(history_data), use_container_width=True)
+
+    if st.button("🗑️ Очистити історію"):
+        st.session_state.history = []
+        st.session_state.result = None
+        st.rerun()
