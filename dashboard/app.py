@@ -164,8 +164,7 @@ with tab1:
     with col1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-            value=st.session_state.text_input,
-            height=100,
+                        height=100,
             key="main_text_input"
         )
         # Update session state
@@ -361,3 +360,5 @@ st.markdown("""
     <p>Capstone Project | Neoversity | Master of Science in Computer Science</p>
 </div>
 """, unsafe_allow_html=True)
+
+
