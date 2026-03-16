@@ -2,12 +2,11 @@
 
 | Датасет | Розмір | Мова | Формат | Статус |
 |---------|--------|------|--------|--------|
-| ISOT Fake News (Kaggle) | 39,103 | EN | CSV | ✅ |
-| UNLP 2025 Telegram | 9,557 | UA | JSON | ⚠️ HF |
-| StopFake corpus | ~5,000 | UA/EN | CSV | ⚠️ HF |
-| gold/demo_cases.csv | 30 | UA | CSV | ✅ авторська |
+| gold/demo_cases.csv | 31 | uk | CSV | ✅ локально |
+| lasr-unlp/unlp-2025-shared-task | 0 | uk | HuggingFace | unavailable: ModuleNotFoundError |
 
-## Джерела
-- ISOT: kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset
-- UNLP 2025: github.com/unlp-workshop/unlp-2025-shared-task
-- StopFake: stopfake.org (manual collection)
+## Audit summary
+- Кількість кейсів: 31
+- Кількість дублікатів: 0
+- Мовний розподіл: [{'language': 'uk', 'count': 30}, {'language': 'ru', 'count': 1}]
+- Баланс класів: [{'label': 'REAL', 'count': 15}, {'label': 'FAKE', 'count': 10}, {'label': 'SUSPICIOUS', 'count': 6}]
