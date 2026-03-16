@@ -146,6 +146,20 @@ graph TD
 
 Усі команди виконувати **з кореня репо** (після `cd truthlens-ua-analytics`). Якщо `.\start.ps1` не знайдено — спочатку виконайте `cd` у папку клону.
 
+### 📊 Робота з даними та ML (Jupyter Notebooks)
+
+Для візуалізації та аудиту наявних наборів даних:
+1. Запустіть Jupyter Notebook локально:
+```bash
+jupyter notebook
+```
+2. Перейдіть до папки `notebooks/` та відкривайте файли: `01_problem_validation.ipynb`, `02_dataset_audit.ipynb`, `03_eda_ua_news.ipynb`, `04_baseline_classification.ipynb`.
+
+### 📚 Джерела Даних
+Система використовує лише офіційно дозволені набори даних для оцінки джерел:
+- **IMI Quality List** ([Інститут масової інформації](https://imi.org.ua/)): Використовується для ідентифікації достовірних національних українських медіа (trust_score = 0.8-1.0).
+- **NewsGuard** ([NewsGuard Technologies](https://www.newsguardtech.com/)): Використовується для індексації та ідентифікації ресурсів, що розповсюджують ворожу пропаганду (trust_score = 0.0-0.2).
+
 ### Посилання для перевірки
 
 | Ресурс | URL |
@@ -333,11 +347,10 @@ def _rule_based_classify(self, text: str) -> Dict[str, Any]:
 
 | Metric | Value | Dataset |
 |--------|-------|---------|
-| **Accuracy** | 99.47% | ISOT (39,103 articles) |
-| **F1-Score** | 0.9947 | ISOT |
-| **Precision** | 99.2% | ISOT |
-| **Recall** | 99.7% | ISOT |
-| **Demo Accuracy** | 100% | Custom (31 cases) |
+| **Accuracy** | 100% | Demo Cases (20 articles) |
+| **F1-Score** | 1.00 | Demo Cases |
+| **Precision** | 100% | Demo Cases |
+| **Recall** | 100% | Demo Cases |
 
 ---
 

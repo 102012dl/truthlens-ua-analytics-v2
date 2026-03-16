@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 import os
 import re
+import joblib
 
 # Configuration
 st.set_page_config(
@@ -64,6 +65,16 @@ api_url = st.sidebar.text_input(
 )
 st.sidebar.markdown("---")
 
+# Try loading the baseline model
+model_path = os.path.join(os.path.dirname(__file__), '../src/models/baseline_tfidf_svc.pkl')
+try:
+    if os.path.exists(model_path):
+        baseline_model = joblib.load(model_path)
+    else:
+        baseline_model = None
+except:
+    baseline_model = None
+
 # Built-in analysis function
 def analyze_text_locally(text: str):
     """Вбудована функція аналізу тексту"""
@@ -114,6 +125,17 @@ def analyze_text_locally(text: str):
     # Розрахунок fake score
     fake_score = min(0.95, len(ipso_techniques) * 0.15)
     
+    # Використання моделі якщо вона доступна
+    if baseline_model is not None:
+        try:
+            model_pred = baseline_model.predict([text])[0]
+            if model_pred == 1:
+                fake_score = max(fake_score, 0.8)
+            else:
+                fake_score = min(fake_score, 0.4)
+        except Exception as e:
+            pass
+
     # Визначення вердикту
     if fake_score >= 0.65:
         verdict = "FAKE"
@@ -142,16 +164,17 @@ def analyze_text_locally(text: str):
 tab1, tab2, tab3 = st.tabs(["🏠 Головна", "📊 Аналіз", "📈 Статистика"])
 
 with tab1:
+    # Застосувати префілл з кнопок "Приклади" до створення text_area (Streamlit забороняє змінювати session_state ключ віджета після його створення)
+    if "prefill_request" in st.session_state:
+        st.session_state["main_text_input"] = st.session_state.pop("prefill_request")
+
     st.markdown("### 🎯 Швидка перевірка новини")
     
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        # Приклади заповнюють саме цей віджет (key main_text_input)
-        prefill = st.session_state.get("main_text_input", "")
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-            value=prefill,
             height=120,
             placeholder="Вставте текст або URL...",
             key="main_text_input",
@@ -162,17 +185,17 @@ with tab1:
     with col2:
         st.markdown("### Приклади")
         if st.button("🔴 Фейк", key="ex_fake", help="Типовий текст фейкової новини"):
-            st.session_state["main_text_input"] = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
+            st.session_state["prefill_request"] = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
             st.rerun()
         if st.button("🟢 Реальна", key="ex_real", help="Типовий текст достовірної новини"):
-            st.session_state["main_text_input"] = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
+            st.session_state["prefill_request"] = "НБУ підвищив облікову ставку до 16% на засіданні Правління 25 лютого."
             st.rerun()
         if st.button("🟡 Підозріла", key="ex_susp", help="Текст, що потребує перевірки"):
-            st.session_state["main_text_input"] = "Експерти попереджають про можливу економічну кризу через світові ринки."
+            st.session_state["prefill_request"] = "Експерти попереджають про можливу економічну кризу через світові ринки."
             st.rerun()
         
         if st.button("🗑️ Очистити", key="ex_clear"):
-            st.session_state["main_text_input"] = ""
+            st.session_state["prefill_request"] = ""
             st.rerun()
     
     if st.button("🔍 Аналізувати", type="primary"):
