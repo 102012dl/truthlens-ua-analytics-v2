@@ -1,0 +1,14 @@
+artifact_uri: file:C:/Users/home2/Downloads/ACS Capstone Project 2058 130226/truthlens-ua-analytics/mlruns/677611155509171714/ccb801f50f4a429685ea89c25627e322/artifacts
+end_time: 1773787314996
+entry_point_name: ''
+experiment_id: '677611155509171714'
+lifecycle_stage: active
+run_id: ccb801f50f4a429685ea89c25627e322
+run_name: baseline-linearsvc
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773787314953
+status: 3
+tags: []
+user_id: home2

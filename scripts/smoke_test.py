@@ -27,7 +27,7 @@ print("═"*65 + "\n")
 
 chk("GET /",             f"{BASE}/",        key="service")
 chk("GET /health",       f"{BASE}/health",  key="status",
-    validator=lambda d: d.get("status") in ["ok","degraded"],"degraded")
+    validator=lambda d: d.get("status") in ("ok", "degraded"))
 chk("POST /check FAKE",  f"{BASE}/check",   "POST",
     {"text":"ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте!!!"},
     "verdict", lambda d: d["verdict"]=="FAKE")
@@ -48,8 +48,17 @@ for e,n,ms,d in results:
 p = sum(1 for r in results if r[0]=="✅")
 t = len(results)
 print(f"\n{'═'*65}")
-print(f"  RESULT: {p}/{t} passed")
-if p==t: print("  🎯  NMVP1 READY — все працює!")
+
+# Dashboard is optional in API-only runs
+api_core_passed = sum(1 for r in results if r[0]=="✅" and "Dashboard" not in r[1])
+api_core_total = sum(1 for r in results if "Dashboard" not in r[1])
+
+print(f"  RESULT: {p}/{t} total checks passed")
+if api_core_passed == api_core_total:
+    print("  🎯  NMVP1 READY — Core API & Models працюють!")
+    if p < t:
+        print("  ℹ️   Деякі опційні сервіси (Dashboard) не запущені.")
+    sys.exit(0)
 else:
-    print(f"  ⚠️   {t-p} check(s) failed")
+    print(f"  ⚠️   Втрачено критичні з'єднання. {api_core_total - api_core_passed} API check(s) failed")
     sys.exit(1)
