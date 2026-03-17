@@ -36,7 +36,7 @@ services:
       context: ./dashboard
       dockerfile: Dockerfile
     command: >
-      streamlit run app.py
+      streamlit run Home.py
       --server.port=8501
       --server.address=0.0.0.0
       --server.headless=true
@@ -48,10 +48,6 @@ services:
     volumes:
       - ./dashboard:/app
       - ./data:/data
-
-volumes:
-  postgres_data:
-  grafana_data:
 
   prometheus:
     image: prom/prometheus:latest
@@ -68,3 +64,7 @@ volumes:
     depends_on: [prometheus]
     volumes:
       - grafana_data:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  grafana_data:
