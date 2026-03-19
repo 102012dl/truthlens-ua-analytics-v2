@@ -1,0 +1,32 @@
+{
+  "title": "TruthLens UA Platform — API Dashboard",
+  "panels": [
+    {
+      "title": "Request Rate (req/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (method)"
+        }
+      ]
+    },
+    {
+      "title": "API Latency (/check)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=\"/check\"}[5m])) by (le))"
+        }
+      ]
+    },
+    {
+      "title": "Verdict Distribution",
+      "type": "piechart",
+      "targets": [
+        {
+          "expr": "sum(verdict_totals) by (verdict)"
+        }
+      ]
+    }
+  ]
+}

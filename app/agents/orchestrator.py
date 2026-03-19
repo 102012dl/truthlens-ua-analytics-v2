@@ -5,6 +5,7 @@ from app.agents.classifier import TruthLensClassifier
 from app.agents.ipso_detector import IPSODetector
 from app.agents.source_scorer import SourceScorer
 from app.agents.verdict_engine import VerdictEngine
+from app.agents.ua_classifier import UkrainianClassifier
 
 __all__ = ["TruthLensOrchestrator"]
 
@@ -16,10 +17,11 @@ class TruthLensOrchestrator:
         self.classifier = TruthLensClassifier()
         self.ipso_detector = IPSODetector()
         self.source_scorer = SourceScorer()
+        self.ua_classifier = UkrainianClassifier()
         self.verdict_engine = VerdictEngine()
 
     async def process(self, text: str, domain: str = "direct",
-                      article_count: int = 0) -> Dict[str, Any]:
+                      article_count: int = 0, language: str = "uk") -> Dict[str, Any]:
         """
         Full analysis pipeline:
         1. ML classification (LinearSVC)
@@ -38,8 +40,12 @@ class TruthLensOrchestrator:
         confidence = ml["confidence"]
 
         # Step 2: Semantic Analysis (Mocked RoBERTa)
-        # Using ml score as fallback proxy for semantic score in NMVP2 MVP
         roberta_score = fake_score
+        if language == "uk" and self.ua_classifier.pipeline:
+            ua = self.ua_classifier.classify(text)
+            if ua["verdict"] is not None:
+                roberta_score = 1.0 - ua["score"] if ua["verdict"] == "REAL" else ua["score"]
+                ml["method"] += " + ukr-roberta"
 
         # Step 3: ІПСО detection
         ipso = self.ipso_detector.detect(text)

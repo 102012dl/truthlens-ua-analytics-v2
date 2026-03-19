@@ -1,33 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
-from app.db import models
+from pydantic import BaseModel
 
 router = APIRouter()
 
 class FeedbackRequest(BaseModel):
-    pool_id: int
-    user_validation: str
+    check_id: int
+    correct_verdict: str  # REAL / FAKE / SUSPICIOUS
+    user_type: str = "anonymous"
 
 @router.post("")
-async def submit_feedback(request: FeedbackRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Endpoint to process user feedback for items in the Uncertainty Pool.
-    user_validation should be 'Agree' or 'Disagree'.
-    """
-    if request.user_validation not in ["Agree", "Disagree"]:
-        raise HTTPException(status_code=400, detail="user_validation must be 'Agree' or 'Disagree'")
-
-    pool_item = await db.get(models.UncertaintyPool, request.pool_id)
-    if not pool_item:
-        raise HTTPException(status_code=404, detail="Item not found in Uncertainty Pool")
-
-    feedback = models.UserFeedback(
-        pool_id=request.pool_id,
-        user_validation=request.user_validation
-    )
-    db.add(feedback)
-    await db.commit()
+async def submit_feedback(req: FeedbackRequest,
+                            db: AsyncSession = Depends(get_db)):
+    from app.db.models import ClaimCheck
+    from sqlalchemy import select, update
+    from datetime import datetime
     
-    return {"status": "success", "message": "Feedback recorded for Active Learning.", "pool_id": request.pool_id}
+    check = await db.get(ClaimCheck, req.check_id)
+    if check:
+        check.user_feedback = req.correct_verdict
+        check.feedback_at = datetime.utcnow()
+        await db.commit()
+    return {"status": "received", "check_id": req.check_id}

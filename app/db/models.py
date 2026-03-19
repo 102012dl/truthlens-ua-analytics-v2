@@ -70,14 +70,41 @@ class ClaimCheck(Base):
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     ipso_techniques: Mapped[dict] = mapped_column(JSON, nullable=True)
     explanation_uk: Mapped[str] = mapped_column(Text, nullable=False)
+    formula_breakdown: Mapped[dict] = mapped_column(JSON, nullable=True) # From NMVP2
     processing_time_ms: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    user_feedback: Mapped[str] = mapped_column(String(20), nullable=True)
+    feedback_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     claim: Mapped[Claim] = relationship(back_populates="claim_checks")
 
     def __repr__(self) -> str:
         return f"<ClaimCheck(id={self.id}, verdict='{self.verdict}', credibility={self.credibility_score})>"
+
+class AnalyticsTrend(Base):
+    __tablename__ = "analytics_trends"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime, index=True)
+    total_checks: Mapped[int] = mapped_column(Integer, default=0)
+    fake_count: Mapped[int] = mapped_column(Integer, default=0)
+    real_count: Mapped[int] = mapped_column(Integer, default=0)
+    suspicious_count: Mapped[int] = mapped_column(Integer, default=0)
+    avg_credibility: Mapped[float] = mapped_column(Float, default=0.0)
+    top_ipso_technique: Mapped[str] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+class DomainStats(Base):
+    __tablename__ = "domain_stats"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    domain: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    check_count: Mapped[int] = mapped_column(Integer, default=0)
+    fake_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    avg_credibility: Mapped[float] = mapped_column(Float, default=0.0)
+    last_seen: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 # NMVP2 Active Learning Models

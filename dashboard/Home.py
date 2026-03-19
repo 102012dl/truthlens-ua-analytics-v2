@@ -277,6 +277,27 @@ with tab1:
                 st.info(result['explanation_uk'])
                 st.markdown('</div>', unsafe_allow_html=True)
                 
+                # Feedback Widget
+                import httpx
+                st.divider()
+                st.markdown("**Чи результат правильний?**")
+                fcol1, fcol2 = st.columns(2)
+                correct = fcol1.button("✅ Так, правильно")
+                wrong = fcol2.button("❌ Ні, помилково")
+                
+                if correct or wrong:
+                    feedback = "correct" if correct else "wrong"
+                    try:
+                        api_url_env = os.environ.get("API_URL", "http://localhost:8000")
+                        httpx.post(f"{api_url_env}/api/v1/feedback", json={
+                            "check_id": result.get("article_id", 0),
+                            "correct_verdict": result.get("verdict"),
+                            "user_type": feedback
+                        }, timeout=5)
+                        st.success("Дякуємо за відгук!")
+                    except Exception:
+                        pass
+                
                 # Add clear button after analysis
                 if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
                     st.session_state.text_input = ""
