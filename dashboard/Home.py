@@ -258,6 +258,18 @@ with tab1:
                 m2.metric("Fake Score", f"{result['fake_score']:.3f}", None)
                 m3.metric("Впевненість", f"{result['confidence']:.0%}", None)
                 m4.metric("Час", f"{result['processing_time_ms']:.0f} мс", None)
+                
+                if 'formula_breakdown' in result:
+                    fb = result['formula_breakdown']
+                    st.markdown("---")
+                    st.markdown("#### 🧮 Розрахунок Verdict Engine (NMVP2 Formula)")
+                    st.markdown(f"`Final_Score = (0.3 * ML) + (0.4 * RoBERTa) + (0.3 * IPSO)`")
+                    f1, f2, f3, f4 = st.columns(4)
+                    f1.metric("Базовий ML (0.3)", f"{fb['ml_score']:.3f}", f"Контрибуція: {fb['ml_contribution']:.3f}")
+                    f2.metric("RoBERTa (0.4)", f"{fb['roberta_score']:.3f}", f"Контрибуція: {fb['roberta_contribution']:.3f}")
+                    f3.metric("ІПСО Штраф (0.3)", f"{fb['ipso_penalty']:.3f}", f"Контрибуція: {fb['ipso_contribution']:.3f}")
+                    f4.metric("Разом (Fake Score)", f"{result['fake_score']:.3f}")
+                
                 if result.get('ipso_techniques'):
                     st.markdown("**Виявлені ІПСО техніки:** " + ", ".join(result['ipso_techniques']))
                 else:

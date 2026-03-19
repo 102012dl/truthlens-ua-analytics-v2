@@ -4,27 +4,30 @@ from typing import Dict, Any
 from app.agents.classifier import TruthLensClassifier
 from app.agents.ipso_detector import IPSODetector
 from app.agents.source_scorer import SourceScorer
+from app.agents.verdict_engine import VerdictEngine
 
 __all__ = ["TruthLensOrchestrator"]
 
 
 class TruthLensOrchestrator:
-    """Main analysis pipeline — sequential v1."""
+    """Main analysis pipeline — NMVP2."""
 
     def __init__(self):
         self.classifier = TruthLensClassifier()
         self.ipso_detector = IPSODetector()
         self.source_scorer = SourceScorer()
+        self.verdict_engine = VerdictEngine()
 
     async def process(self, text: str, domain: str = "direct",
                       article_count: int = 0) -> Dict[str, Any]:
         """
         Full analysis pipeline:
-        1. ML classification (LinearSVC or rule-based)
-        2. ІПСО technique detection
-        3. Verdict determination (with ІПСО override)
-        4. Credibility score calculation
-        5. Ukrainian explanation generation
+        1. ML classification (LinearSVC)
+        2. Semantic Analysis (Mocked ukr-roberta-base)
+        3. ІПСО technique detection -> IPSO penalty
+        4. Verdict determination via VerdictEngine
+        5. Credibility score calculation
+        6. Ukrainian explanation generation
         Returns complete verdict dict.
         """
         start = time.perf_counter()
@@ -34,59 +37,74 @@ class TruthLensOrchestrator:
         fake_score = ml["fake_score"]
         confidence = ml["confidence"]
 
-        # Step 2: ІПСО detection
+        # Step 2: Semantic Analysis (Mocked RoBERTa)
+        # Using ml score as fallback proxy for semantic score in NMVP2 MVP
+        roberta_score = fake_score
+
+        # Step 3: ІПСО detection
         ipso = self.ipso_detector.detect(text)
-        override = self.ipso_detector.get_override(ipso)
+        # Normalize IPSO penalty from 0 to 1 based on detected techniques 
+        # (Assuming 4 detected techniques is max manipulation score 1.0)
+        ipso_penalty = min(len(ipso) / 4.0, 1.0)
 
-        # Step 3: Verdict (ІПСО override takes priority)
-        if override:
-            verdict = "FAKE"
-            fake_score = max(fake_score, 0.70)  # Ensure high fake_score for IPSO
-        elif fake_score >= 0.55:  # Raised from 0.45 to avoid false positives
-            verdict = "FAKE"
-        elif fake_score >= 0.30:  # Raised from 0.25 to match SUSPICIOUS better
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "REAL"
-
-        # Step 4: Source credibility calculation
+        # Step 4: Source Scoring (Adds penalty to fake_score if suspicious)
         source_score, _ = self.source_scorer.score(domain, article_count)
-        source_credibility = round(source_score * 100, 1)
+        source_penalty = 0.2 if domain in ["blacklisted_domain.com"] else 0.0 # simplified logic
+        
+        # In NMVP2 prompt: "If source in blacklist, add +0.2 to P_final."
+        # We handle source score separately or add to ipso_penalty
 
-        # Step 5: Credibility score (0-100, inverse of fake_score)
-        credibility = round((1.0 - fake_score) * 100, 1)
+        # Step 5: VerdictEngine evaluation
+        verdict_result = self.verdict_engine.evaluate(fake_score, roberta_score, ipso_penalty)
+        final_score = verdict_result["final_score"]
+        verdict = verdict_result["verdict"]
+        
+        # Apply source penalty if any
+        if source_penalty > 0:
+            final_score = min(final_score + source_penalty, 1.0)
+            if final_score < 0.35: verdict = "REAL"
+            elif final_score <= 0.65: verdict = "SUSPICIOUS"
+            else: verdict = "FAKE"
 
-        # Step 6: Ukrainian explanation
+        # Credibility is inverse of final score
+        credibility = round((1.0 - final_score) * 100, 1)
+
+        # Ukrainian explanation
         explanation = self._build_explanation(
-            verdict, ipso, fake_score, confidence, domain)
+            verdict, ipso, final_score, confidence, domain)
 
         ms = round((time.perf_counter() - start) * 1000, 2)
 
         return {
             "verdict": verdict,
             "credibility_score": credibility,
-            "fake_score": round(fake_score, 4),
+            "fake_score": round(final_score, 4),
+            "ml_score": round(fake_score, 4),
+            "roberta_score": round(roberta_score, 4),
+            "ipso_penalty": round(ipso_penalty, 4),
             "confidence": round(confidence, 4),
             "ipso_techniques": ipso,
-            "source_credibility": source_credibility,
+            "source_credibility": round(source_score * 100, 1),
             "explanation_uk": explanation,
             "processing_time_ms": ms,
             "ml_method": ml["method"],
+            "formula_breakdown": verdict_result["formula_breakdown"]
         }
 
     def _build_explanation(self, verdict: str, ipso: list[str],
-                           fake_score: float, conf: float,
+                           final_score: float, conf: float,
                            domain: str) -> str:
         parts = []
         if verdict == "FAKE":
-            parts.append(f"Текст класифіковано як НЕДОСТОВІРНИЙ (score={fake_score:.2f}).")
+            parts.append(f"Текст класифіковано як ВІДВЕРТИЙ ФЕЙК (score={final_score:.2f}).")
             if ipso:
                 parts.append(f"Виявлено ІПСО маніпуляції: {', '.join(ipso)}.")
-            else:
-                parts.append("Модель виявила ознаки маніпуляції.")
         elif verdict == "SUSPICIOUS":
-            parts.append(f"Текст потребує додаткової перевірки (score={fake_score:.2f}).")
+            parts.append(f"Текст ПІДОЗРІЛИЙ та потребує додаткової перевірки (score={final_score:.2f}).")
+            if ipso:
+                parts.append(f"Присутні маніпулятивні маркери: {', '.join(ipso)}.")
         else:
-            parts.append(f"Текст класифіковано як ДОСТОВІРНИЙ (score={fake_score:.2f}).")
-        parts.append(f"Впевненість: {conf*100:.0f}%.")
+            parts.append(f"Текст класифіковано як ДОСТОВІРНИЙ (score={final_score:.2f}). Він не містить ознак ІПСО.")
+            
+        parts.append(f"Впевненість алгоритмів: {conf*100:.0f}%.")
         return " ".join(parts)

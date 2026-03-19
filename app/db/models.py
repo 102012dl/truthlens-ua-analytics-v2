@@ -78,3 +78,44 @@ class ClaimCheck(Base):
 
     def __repr__(self) -> str:
         return f"<ClaimCheck(id={self.id}, verdict='{self.verdict}', credibility={self.credibility_score})>"
+
+
+# NMVP2 Active Learning Models
+
+class UncertaintyPool(Base):
+    """Stores texts with SUSPICIOUS verdicts for active learning."""
+    __tablename__ = "uncertainty_pool"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    model_verdict: Mapped[str] = mapped_column(String(20), nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    manipulation_tags: Mapped[dict] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Relationships
+    feedbacks: Mapped[list["UserFeedback"]] = relationship(back_populates="pool_item")
+
+
+class UserFeedback(Base):
+    """Stores user validations for items in the uncertainty pool."""
+    __tablename__ = "user_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pool_id: Mapped[int] = mapped_column(Integer, ForeignKey("uncertainty_pool.id"), nullable=False)
+    user_validation: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g., 'Agree', 'Disagree'
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Relationships
+    pool_item: Mapped[UncertaintyPool] = relationship(back_populates="feedbacks")
+
+
+class DatasetRegistry(Base):
+    """Tracks auto-generated datasets for retraining."""
+    __tablename__ = "dataset_registry"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version: Mapped[str] = mapped_column(String(50), nullable=False)
+    samples_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+

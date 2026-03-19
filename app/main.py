@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, check
+from app.api.routes import health, check, feedback
 from app.db.database import init_db
 from contextlib import asynccontextmanager
 
@@ -31,6 +31,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(check.router, prefix="/check")
+app.include_router(feedback.router, prefix="/api/v1/feedback", tags=["Active Learning"])
 
 
 try:

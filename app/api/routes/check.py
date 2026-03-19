@@ -97,6 +97,18 @@ async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
             processing_time_ms=result["processing_time_ms"],
         )
         db.add(check)
+        await db.flush()
+
+        # NMVP2 Active Learning: Add to UncertaintyPool if verdict is SUSPICIOUS
+        if result["verdict"] == "SUSPICIOUS":
+            uncertainty_item = models.UncertaintyPool(
+                text=text[:5000],
+                model_verdict="SUSPICIOUS",
+                confidence=result["fake_score"],
+                manipulation_tags=result["ipso_techniques"]
+            )
+            db.add(uncertainty_item)
+
         await db.commit()
         article_id = article.id
         source_credibility = getattr(source, "credibility_score", source_credibility)
