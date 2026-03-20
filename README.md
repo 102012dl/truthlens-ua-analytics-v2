@@ -207,9 +207,10 @@ jupyter notebook
 | Ресурс | URL | Примітка |
 |--------|-----|----------|
 | **Live (Render)** | https://truthlens-ua-analytics.onrender.com | NMVP1 demo |
-| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | Поточний репо |
+| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | Primary (канонічний код) |
 | **GitHub NMVP1** | https://github.com/102012dl/truthlens-ua-analytics | Архів |
-| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | Backup |
+| **GitLab NMVP2** | https://gitlab.com/102012dl/truthlens-ua-analytics-v2 | Дзеркало / SAST CI |
+| **GitLab (legacy backup)** | https://gitlab.com/102012dl/truthlens-ua-analytics | Старий репо NMVP1 |
 
 ### 1. Docker (рекомендовано)
 
@@ -256,10 +257,10 @@ streamlit run dashboard/Home.py --server.port 8501
 
 ### 🌐 Деплой на Render
 
-- Підключити репо: https://github.com/102012dl/truthlens-ua-analytics-v2 (гілка з повним кодом, напр. `nmvp2/development`, якщо `main` ще мінімальний)  
+- Підключити репо: https://github.com/102012dl/truthlens-ua-analytics-v2 — гілка **`main`** (повний NMVP2) або тег релізу.  
 - Build: `pip install -r requirements.txt` (або з `dashboard/` за інструкціями Render)  
 - Start: `streamlit run dashboard/Home.py --server.port $PORT --server.address 0.0.0.0`  
-- Live (приклад NMVP1): **https://truthlens-ua-analytics.onrender.com**
+- Live (приклад старого NMVP1): **https://truthlens-ua-analytics.onrender.com**
 
 ---
 
@@ -288,7 +289,7 @@ pip install -r requirements.txt
 
 **Перевірка (локально):** http://localhost:8501 та http://localhost:8000/health
 
-**Синхронізація репо:** після змін виконати `git add .` → `git commit -m "..."` → `git push origin <гілка>` (наприклад `nmvp2/development` або PR у `main`); GitLab — за потреби.
+**Синхронізація репо:** зміни спочатку на **GitHub** (`git push origin main` або PR у `main`), потім дзеркало на **GitLab** (`git push gitlab main`) — див. `docs/GIT_PRIMARY_MIRROR.md`. Гілка `nmvp2/development` — за потреби для окремих MR.
 
 ### 📱 Швидкий доступ
 
@@ -580,10 +581,11 @@ MIT License - див. файл [LICENSE](LICENSE).
 
 | Платформа | Посилання | Статус |
 |-----------|-----------|--------|
-| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | ✅ Поточний (NMVP2) |
+| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | ✅ Поточний (NMVP2), primary |
 | **GitHub NMVP1** | https://github.com/102012dl/truthlens-ua-analytics | Архів |
 | **TruthLens-UA (legacy ноутбуки)** | https://github.com/102012dl/TruthLens-UA/tree/main/notebooks | ISOT / UA NLP |
-| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | Backup |
+| **GitLab NMVP2** | https://gitlab.com/102012dl/truthlens-ua-analytics-v2 | Дзеркало, GitLab SAST |
+| **GitLab (legacy)** | https://gitlab.com/102012dl/truthlens-ua-analytics | Старий backup NMVP1 |
 | **Render Dashboard** | https://truthlens-ua-analytics.onrender.com | 🚀 Live Demo (NMVP1) |
 | **Render API / legacy endpoint** | https://truthlens-ua.onrender.com | ℹ️ Окремий сервіс |
 

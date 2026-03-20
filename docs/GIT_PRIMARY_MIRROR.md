@@ -13,10 +13,11 @@
 
 ## Поточний стан гілок (NMVP2)
 
-- **`main`** — повна кодова база NMVP2 (не лише README).
-- **`nmvp2/development`** — синхронізована з `main` після злиття (для історії робочих PR/MR).
+- **`main` на GitHub** — канонічна повна кодова база NMVP2.
+- **`nmvp2/development`** — робоча гілка; має збігатися з `main` після релізних злиттів.
+- **`.gitlab-ci.yml`** — у тому ж репозиторії, що й код (SAST через шаблон GitLab), щоб CI не жив у «сиротському» коміті лише на GitLab.
 
-Якщо на GitHub `main` раніше містив лише один початковий коміт, перший push повного дерева може вимагати **`--force-with-lease`** (див. нижче).
+Якщо **`gitlab/main`** колись був окремим коренем (наприклад, лише CI), його треба **вирівняти** під GitHub (див. розділ нижче).
 
 ---
 
@@ -56,11 +57,17 @@ git push origin main --force-with-lease
 git push origin main
 ```
 
-Дзеркало на GitLab (той самий SHA):
+Дзеркало на GitLab (той самий SHA), якщо **fast-forward** можливий:
 
 ```powershell
 git push gitlab main
 ```
+
+Якщо GitLab відхиляє push (`protected branch`, `non-fast-forward`), виконайте **один** з варіантів (потрібні права Owner/Maintainer у [truthlens-ua-analytics-v2 на GitLab](https://gitlab.com/102012dl/truthlens-ua-analytics-v2)):
+
+- **A.** Тимчасово зняти захист з `main` → `git push gitlab main --force-with-lease` → знову увімкнути protection.  
+- **B.** **Settings → Repository → Mirroring repositories** — Pull mirror з GitHub (`https://github.com/102012dl/truthlens-ua-analytics-v2.git`), щоб `main` оновлювався автоматично.  
+- **C.** Видалити гілку `main` на GitLab (якщо дозволено) і створити заново з `origin/main`.
 
 Синхронізація гілки розробки (за потреби):
 
@@ -68,6 +75,20 @@ git push gitlab main
 git push origin nmvp2/development
 git push gitlab nmvp2/development
 ```
+
+---
+
+## Перевірка: однаковий SHA на `main`
+
+Після вирівнювання:
+
+```powershell
+git fetch origin
+git fetch gitlab
+git rev-parse origin/main gitlab/main
+```
+
+Обидва рядки мають показати **однаковий** commit hash.
 
 ---
 
