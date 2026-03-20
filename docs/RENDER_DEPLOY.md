@@ -38,3 +38,10 @@ python scripts/check_model.py
 ```
 
 Якщо файл відсутній — очікується rule-based fallback ([`ARCHITECTURE_NMVP2.md`](ARCHITECTURE_NMVP2.md)).
+
+## Сторінка «Demo Cases»: усі рядки ERROR або застарілий текст
+
+1. **Переконайтеся, що задеплоєно останній `main`:** у репозиторії має бути `dashboard/local_analyze.py` і оновлений `dashboard/pages/3_Demo_Cases.py` (колонка **Source**, `st.info` про API + локальний fallback). Після push — **Manual Deploy** для сервісу dashboard на Render.
+2. **Змінна `API_URL` у сервісі dashboard** має бути повним URL **API**-сервісу (наприклад `https://<ваш-сервіс-api>.onrender.com`), а **не** URL Streamlit-dashboard.
+3. Якщо імена сервісів відрізняються від прикладу в [`render.yaml`](../render.yaml) — виставте `API_URL` вручну під ваш `-api` hostname.
+4. Перший запит після sleep на free tier може тривати десятки секунд; натисніть **Run All Checks** ще раз або дочекайтесь відповіді. У колонці **Source** очікується `API` або `local_fallback (...)` — не лише `ERROR`.

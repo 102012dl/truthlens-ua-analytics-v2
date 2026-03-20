@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 import streamlit as st
 import requests
 import pandas as pd
@@ -5,6 +8,12 @@ from datetime import datetime
 import os
 import re
 import joblib
+
+# Streamlit / Render: гарантуємо імпорт з каталогу dashboard/ незалежно від cwd
+_DASH = Path(__file__).resolve().parent
+if str(_DASH) not in sys.path:
+    sys.path.insert(0, str(_DASH))
+from local_analyze import analyze_text_locally
 
 # Configuration
 st.set_page_config(
@@ -51,11 +60,12 @@ st.markdown("---")
 
 # Sidebar
 st.sidebar.markdown("### ⚙️ Налаштування")
-# API URL: локально localhost; на Render — з env або плейсхолдер v2 (підставте свій URL після деплою)
+# API URL: на Render обов’язково URL сервісу **API** (…-api.onrender.com), див. render.yaml / RENDER_DEPLOY.md
 IS_RENDER = "RENDER" in os.environ or bool(os.environ.get("RENDER_EXTERNAL_URL"))
+_DEFAULT_RENDER_API = "https://truthlens-ua-analytics-v2-api.onrender.com"
 DEFAULT_API = os.environ.get(
     "API_URL",
-    "https://truthlens-ua-analytics-v2.onrender.com" if IS_RENDER else "http://localhost:8000",
+    _DEFAULT_RENDER_API if IS_RENDER else "http://localhost:8000",
 )
 if "api_url" not in st.session_state:
     st.session_state.api_url = DEFAULT_API
@@ -75,77 +85,6 @@ try:
         baseline_model = None
 except:
     baseline_model = None
-
-# Built-in analysis function
-def analyze_text_locally(text: str):
-    """Вбудована функція аналізу тексту — NMVP2"""
-    
-    # 1. ML Score calculation (Simulated baseline)
-    ml_score = 0.15 # Default real
-    if re.search(r'ТЕРМІНОВО|НЕГАЙНО|ШОК|УВАГА', text, re.IGNORECASE):
-        ml_score = 0.75
-    
-    # 2. RoBERTa Score (Simulated semantic context)
-    roberta_score = 0.20
-    if re.search(r'ЗСУ|АРМІЯ|ВІЙСЬКОВІ|ОБОРОНА', text, re.IGNORECASE):
-        roberta_score = 0.60 # Military topics are often targeted
-    
-    # 3. ІПСО техніка детекція -> IPSO Penalty
-    ipso_techniques = []
-    if re.search(r'ТЕРМІНОВО|ЗАРАЗ|НЕГАЙНО|СТРИКНО', text, re.IGNORECASE):
-        ipso_techniques.append("urgency_injection")
-    if re.search(r'[А-Я]{3,}', text):
-        ipso_techniques.append("caps_abuse")
-    if re.search(r'ПОШИРТЕ|РЕПОСТ|ПОДІЛІТЬСЯ|ПЕРЕСЛАТИ', text, re.IGNORECASE):
-        ipso_techniques.append("viral_call")
-    if re.search(r'ВИДАЛЕННЯ|УСПІЙ|ЗАПИШИ|ЗБЕРЕГИ', text, re.IGNORECASE):
-        ipso_techniques.append("deletion_threat")
-    if re.search(r'ЗАМОВЧУЮТЬ|ХОВАЮТЬ|ПРАВДА|НА СПРАВДІ', text, re.IGNORECASE):
-        ipso_techniques.append("conspiracy_framing")
-    if re.search(r'ДЖЕРЕЛ[АОИ]|ЕКСПЕРТ[И]|ІНФОРМУЮТЬ|КАЖУТЬ|ПОВІДОМЛЯ[ЄЮ]ТЬСЯ|ЧУТКИ', text, re.IGNORECASE):
-        ipso_techniques.append("anonymous_sources")
-    
-    ipso_penalty = min(len(ipso_techniques) / 4.0, 1.0)
-    
-    # 4. NMVP2 Verdict Formula: Final_Score = (0.3 * ML) + (0.4 * RoBERTa) + (0.3 * IPSO)
-    final_score = (0.3 * ml_score) + (0.4 * roberta_score) + (0.3 * ipso_penalty)
-    final_score = min(max(final_score, 0.0), 1.0)
-
-    # Thresholds: Real < 0.35, Suspicious 0.35-0.65, Fake > 0.65
-    if final_score >= 0.65:
-        verdict = "FAKE"
-        explanation_uk = "Текст класифіковано як ФЕЙК. Виявлено високий рівень маніпулятивних технік та ознак ІПСО."
-    elif final_score >= 0.35:
-        verdict = "SUSPICIOUS"
-        explanation_uk = "Текст ПІДОЗРІЛИЙ. Присутні окремі маркери маніпуляції, що потребують уваги."
-    else:
-        verdict = "REAL"
-        explanation_uk = "Текст виглядає ДОСТОВІРНИМ. Явних ознак маніпулятивного впливу не виявлено."
-    
-    credibility_score = round((1.0 - final_score) * 100, 1)
-    
-    # Ключі узгоджені з CheckResponse (app/schemas/check.py) для однакового UI з API
-    return {
-        "article_id": 0,
-        "verdict": verdict,
-        "credibility_score": credibility_score,
-        "fake_score": round(final_score, 3),
-        "confidence": round(0.85, 1),
-        "ipso_techniques": ipso_techniques,
-        "source_credibility": 50.0,
-        "explanation_uk": explanation_uk,
-        "source_domain": "direct_input",
-        "language": "uk",
-        "processing_time_ms": 12.5,
-        "formula_breakdown": {
-            "ml_score": ml_score,
-            "ml_contribution": round(0.3 * ml_score, 3),
-            "roberta_score": roberta_score,
-            "roberta_contribution": round(0.4 * roberta_score, 3),
-            "ipso_penalty": ipso_penalty,
-            "ipso_contribution": round(0.3 * ipso_penalty, 3),
-        },
-    }
 
 # Main content
 tab1, tab2, tab3 = st.tabs(["🏠 Головна", "📊 Аналіз", "📈 Статистика"])
