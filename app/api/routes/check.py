@@ -1,12 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.database import get_db
-from app.db import models, repository
-from app.schemas.check import CheckRequest, CheckResponse
-from app.agents.orchestrator import TruthLensOrchestrator
-import httpx
+import os
 import re
 import time
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agents.orchestrator import TruthLensOrchestrator
+from app.db import models, repository
+from app.db.database import get_db
+from app.limiter import limiter
+from app.schemas.check import CheckRequest, CheckResponse
+
+_rpm = max(1, int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30")))
+CHECK_RATE_LIMIT = f"{_rpm}/minute"
 
 router = APIRouter()
 _orchestrator = TruthLensOrchestrator()
@@ -33,7 +40,12 @@ async def fetch_url_content(url: str) -> tuple[str, str]:
 
 
 @router.post("", response_model=CheckResponse)
-async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit(CHECK_RATE_LIMIT)
+async def check_text(
+    request: Request,
+    payload: CheckRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Main analysis endpoint.
     Accepts URL or text, returns verdict + credibility analysis.
@@ -41,15 +53,15 @@ async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
     start = time.perf_counter()
 
     # 1. Prepare content
-    if request.url:
+    if payload.url:
         try:
-            title, body = await fetch_url_content(request.url)
+            title, body = await fetch_url_content(payload.url)
             text = f"{title}. {body}"
-            domain = extract_domain(request.url)
+            domain = extract_domain(payload.url)
         except Exception as e:
             raise HTTPException(400, f"Cannot fetch URL: {e}")
     else:
-        text = request.text
+        text = payload.text
         domain = "direct_input"
         title = text[:100] if text else ""
 
@@ -70,10 +82,10 @@ async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
 
         article = models.Article(
             source_id=source.id,
-            url=request.url,
+            url=payload.url,
             title=title[:200] if title else None,
             body=text[:5000],
-            language=request.language,
+            language=payload.language,
         )
         db.add(article)
         await db.flush()
@@ -128,7 +140,7 @@ async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
         source_credibility=source_credibility,
         explanation_uk=result["explanation_uk"],
         source_domain=domain,
-        language=request.language,
+        language=payload.language,
         processing_time_ms=total_ms,
         formula_breakdown=result.get("formula_breakdown"),
     )

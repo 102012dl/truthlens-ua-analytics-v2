@@ -51,17 +51,18 @@ st.markdown("---")
 
 # Sidebar
 st.sidebar.markdown("### ⚙️ Налаштування")
-# На Render за замовчуванням — тільки вбудований аналіз (без звернення до localhost)
-is_render = "RENDER" in os.environ or bool(os.environ.get("RENDER_EXTERNAL_URL"))
-default_api_url = os.environ.get("API_URL", "http://localhost:8000")
-if is_render:
-    default_api_url = "https://truthlens-ua-analytics.onrender.com"
+# API URL: локально localhost; на Render — з env або плейсхолдер v2 (підставте свій URL після деплою)
+IS_RENDER = "RENDER" in os.environ or bool(os.environ.get("RENDER_EXTERNAL_URL"))
+DEFAULT_API = os.environ.get(
+    "API_URL",
+    "https://truthlens-ua-analytics-v2.onrender.com" if IS_RENDER else "http://localhost:8000",
+)
 if "api_url" not in st.session_state:
-    st.session_state.api_url = default_api_url
+    st.session_state.api_url = DEFAULT_API
 api_url = st.sidebar.text_input(
     "API URL (порожньо = тільки вбудований аналіз)",
-    placeholder="http://127.0.0.1:8000" if not is_render else "Вбудований аналіз",
-    key="api_url"
+    placeholder="http://127.0.0.1:8000" if not IS_RENDER else "Вбудований аналіз",
+    key="api_url",
 )
 st.sidebar.markdown("---")
 
@@ -190,7 +191,7 @@ with tab1:
                 result = None
                 api_url_clean = (api_url or "").strip().rstrip("/")
                 # На Render або при localhost — не викликати API, щоб не показувати помилки підключення
-                if is_render or (api_url_clean and "localhost" in api_url_clean):
+                if IS_RENDER or (api_url_clean and "localhost" in api_url_clean):
                     api_url_clean = ""
 
                 # Якщо API URL порожній — тільки вбудований аналіз (без повідомлень про помилки)

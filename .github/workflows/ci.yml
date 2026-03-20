@@ -26,5 +26,10 @@ jobs:
       - name: Run tests
         run: pytest tests/ -q --tb=short
 
-      - name: NMVP2 repo verify (A–H)
+      - name: NMVP2 repo verify (A–I)
         run: python scripts/verify_nmvp2_repo.py
+
+      - name: Rate limit wiring (quick grep)
+        run: |
+          grep -q "slowapi" requirements.txt && echo "OK: slowapi in requirements"
+          grep -q "limiter" app/api/routes/check.py && echo "OK: limiter in check.py"
