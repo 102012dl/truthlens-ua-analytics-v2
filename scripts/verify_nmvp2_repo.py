@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Automated NMVP2 repository checks (A-H) for CI and Cursor Composer.
-(Section H uses CheckResponse.model_json_schema only -- not app.openapi().)
+Automated NMVP2 repository checks (A-I) for CI and Cursor Composer.
+(Section H: JSON Schema; section I: slowapi on /check.)
 
 Run from repo root:
   python scripts/verify_nmvp2_repo.py
@@ -64,6 +64,19 @@ def check_a() -> None:
     must_exist("tests/test_feedback.py", "feedback tests")
     must_exist("data/README.md", "data README")
     must_exist("docs/DATASET_SETUP.md", "dataset instructions")
+
+    print("\n=== A2. NMVP2 sprint artifacts ===")
+    for rel, desc in [
+        ("scripts/check_model.py", "check_model script"),
+        ("scripts/mlflow_setup.py", "mlflow_setup script"),
+        ("render.yaml", "Render blueprint"),
+        ("docs/RENDER_DEPLOY.md", "Render deploy doc"),
+        ("docs/DAGSHUB_SETUP.md", "DagsHub setup doc"),
+        ("docs/presentation/SLIDES_CONTENT.md", "presentation slides content"),
+        ("docs/CURSOR_MASTER_PROMPT_v4.md", "Composer master prompt reference"),
+        ("app/limiter.py", "slowapi limiter"),
+    ]:
+        must_exist(rel, desc)
 
 
 # --- B. Functional consistency ---
@@ -289,6 +302,24 @@ def check_g_visual_doc() -> None:
         warn("[G] Add docs/DASHBOARD_VISUAL_SMOKE.md for manual UI pass")
 
 
+# --- I. Rate limiting (slowapi) ---
+
+
+def check_i_rate_limit_and_deps() -> None:
+    print("\n=== I. Rate limiting (slowapi) ===")
+    req = read_text("requirements.txt")
+    if "slowapi" in req.lower():
+        ok("[I] slowapi listed in requirements.txt")
+    else:
+        fail("[I] slowapi missing from requirements.txt")
+
+    check_py = read_text("app/api/routes/check.py")
+    if "limiter" in check_py and "limiter.limit" in check_py:
+        ok("[I] app/api/routes/check.py uses limiter.limit")
+    else:
+        fail("[I] Rate limit not applied in check route")
+
+
 # --- D. PR readiness ---
 
 
@@ -326,6 +357,7 @@ def main() -> int:
     check_h_jsonschema_vs_model()
     check_f_readme_smak()
     check_g_visual_doc()
+    check_i_rate_limit_and_deps()
 
     print("\n=== Summary ===")
     if WARNINGS:

@@ -1,3 +1,4 @@
+import logging
 import os
 import math
 import re
@@ -5,6 +6,8 @@ from pathlib import Path
 from typing import Dict, Any
 
 __all__ = ["TruthLensClassifier"]
+
+logger = logging.getLogger(__name__)
 
 
 class TruthLensClassifier:
@@ -16,21 +19,26 @@ class TruthLensClassifier:
     """
 
     def __init__(self):
-        self.model_path = os.getenv("MODEL_PATH", "artifacts/best_model.joblib")
+        self.model_path = os.environ.get("MODEL_PATH", "artifacts/best_model.joblib")
         self.pipeline = self._load_model()
 
     def _load_model(self):
         """Load trained model or return None for fallback."""
-        if Path(self.model_path).exists():
-            try:
-                import joblib
-                pipeline = joblib.load(self.model_path)
-                print(f"[classifier] Model loaded: {self.model_path}")
-                return pipeline
-            except Exception as e:
-                print(f"[classifier] Error loading model: {e}")
-        print("[classifier] Model not found — using rule-based fallback")
-        return None
+        if not Path(self.model_path).exists():
+            logger.warning(
+                "[classifier] best_model.joblib not found at %s — using rule-based fallback. "
+                "Set MODEL_PATH env var or add model under artifacts/ (see docs/DATASET_SETUP.md).",
+                self.model_path,
+            )
+            return None
+        try:
+            import joblib
+            pipeline = joblib.load(self.model_path)
+            logger.info("[classifier] Model loaded: %s", self.model_path)
+            return pipeline
+        except Exception as e:
+            logger.warning("[classifier] Error loading model from %s: %s", self.model_path, e)
+            return None
 
     def classify(self, text: str) -> Dict[str, Any]:
         """

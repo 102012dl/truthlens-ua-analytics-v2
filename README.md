@@ -483,7 +483,7 @@ def get_override(self, ipso: List[str]) -> bool:
 
 - ✅ Input validation (Pydantic)
 - ✅ CORS configuration
-- ⚠️ Rate limiting у коді не увімкнено за замовчуванням
+- ✅ Rate limiting (`slowapi`) на `POST /check` — за замовчуванням **30 req/min / IP** (`RATE_LIMIT_PER_MINUTE`)
 - ✅ GitLab SAST (`.gitlab-ci.yml`), якщо репозиторій на GitLab активний
 
 ---

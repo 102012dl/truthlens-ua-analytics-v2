@@ -49,11 +49,7 @@ p = sum(1 for r in results if r[0]=="✅")
 t = len(results)
 print(f"\n{'═'*65}")
 
-<<<<<<< HEAD
 # Dashboard is optional in API-only runs (like WSL background test)
-=======
-# Dashboard is optional in API-only runs
->>>>>>> c8044a54feafecac1b7a862c9206bccc05e21870
 api_core_passed = sum(1 for r in results if r[0]=="✅" and "Dashboard" not in r[1])
 api_core_total = sum(1 for r in results if "Dashboard" not in r[1])
 

@@ -1,44 +1,30 @@
-# Render Configuration File
-# Place this file in your repository root as render.yaml
+# Render Blueprint — truthlens-ua-analytics-v2 (NMVP2)
+# Після створення сервісів оновіть API_URL у dashboard на фактичний URL API.
 
 services:
-  # Streamlit Dashboard Service
   - type: web
-    name: truthlens-ua
-    env: python
+    name: truthlens-ua-analytics-v2-api
+    runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0
-    healthCheckPath: /_stcore/health
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: MODEL_PATH
         value: artifacts/best_model.joblib
-      - key: API_HOST
-        value: 0.0.0.0
-      - key: LOG_LEVEL
-        value: INFO
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "30"
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: truthlens-ua-analytics-v2-dashboard
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && pip install -r dashboard/requirements.txt
+    startCommand: streamlit run dashboard/Home.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: API_URL
+        value: https://truthlens-ua-analytics-v2-api.onrender.com
       - key: PYTHONUNBUFFERED
         value: "1"
-    autoDeploy: true
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-
-# Optional: Add API service separately
-#  - type: web
-#    name: truthlens-ua-api
-#    env: python
-#    plan: free
-#    buildCommand: pip install -r requirements.txt
-#    startCommand: python -m uvicorn app.api.main:app --host 0.0.0.0 --port $PORT
-#    healthCheckPath: /health
-#    envVars:
-#      - key: MODEL_PATH
-#        value: artifacts/best_model.joblib
-#      - key: DATABASE_URL
-#        sync: false
-#    autoDeploy: true
