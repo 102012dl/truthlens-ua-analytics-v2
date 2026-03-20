@@ -55,6 +55,7 @@ git rev-parse nmvp2/development origin/nmvp2/development gitlab/nmvp2/developmen
 | Файл | Призначення |
 |------|-------------|
 | `docs/NMVP2_STATUS_REPORT_20260320_0525.md` | Звіт-знімок з SHA та підсумком |
+| `docs/ARCHITECTURE_NMVP2.md` | Шари, моделі, формула, діаграми (канонічно до коду) |
 | `docs/GIT_PRIMARY_MIRROR.md` | Primary + mirror, push, перевірка SHA |
 | `docs/DATASET_SETUP.md` | Завантаження ISOT тощо |
 | `data/README.md` | Що в `data/`, що не комітиться |

@@ -123,13 +123,18 @@ def analyze_text_locally(text: str):
     
     credibility_score = round((1.0 - final_score) * 100, 1)
     
+    # Ключі узгоджені з CheckResponse (app/schemas/check.py) для однакового UI з API
     return {
+        "article_id": 0,
         "verdict": verdict,
         "credibility_score": credibility_score,
         "fake_score": round(final_score, 3),
         "confidence": round(0.85, 1),
         "ipso_techniques": ipso_techniques,
+        "source_credibility": 50.0,
         "explanation_uk": explanation_uk,
+        "source_domain": "direct_input",
+        "language": "uk",
         "processing_time_ms": 12.5,
         "formula_breakdown": {
             "ml_score": ml_score,
@@ -137,8 +142,8 @@ def analyze_text_locally(text: str):
             "roberta_score": roberta_score,
             "roberta_contribution": round(0.4 * roberta_score, 3),
             "ipso_penalty": ipso_penalty,
-            "ipso_contribution": round(0.3 * ipso_penalty, 3)
-        }
+            "ipso_contribution": round(0.3 * ipso_penalty, 3),
+        },
     }
 
 # Main content
@@ -238,8 +243,12 @@ with tab1:
                 m2.metric("Fake Score", f"{result['fake_score']:.3f}", None)
                 m3.metric("Впевненість", f"{result['confidence']:.0%}", None)
                 m4.metric("Час", f"{result['processing_time_ms']:.0f} мс", None)
-                
-                if 'formula_breakdown' in result:
+                st.caption(
+                    f"Джерело: **{result.get('source_domain', '—')}** · Мова: **{result.get('language', '—')}** · "
+                    f"ID запису: **{result.get('article_id', 0)}** · Надійність джерела: **{result.get('source_credibility', 0):.1f}%**"
+                )
+
+                if 'formula_breakdown' in result and result['formula_breakdown']:
                     fb = result['formula_breakdown']
                     st.markdown("---")
                     st.markdown("#### 🧮 Розрахунок Verdict Engine (NMVP2 Formula)")

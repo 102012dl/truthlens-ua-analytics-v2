@@ -1,5 +1,7 @@
 """Tests for POST /check endpoint."""
 
+from app.schemas.check import CheckResponse
+
 FAKE_TEXT = "ТЕРМІНОВО!!! ЗСУ ЗДАЛИ Харків! Поширте до видалення!!!"
 REAL_TEXT = "НБУ підвищив облікову ставку до 16% на засіданні Правління."
 
@@ -29,6 +31,6 @@ def test_check_empty_input_fails(client):
 def test_check_response_has_all_fields(client):
     r = client.post("/check", json={"text": "Це довге тестове речення українською мовою для перевірки всіх полів."})
     assert r.status_code == 200
-    for field in ["verdict","credibility_score","fake_score","confidence",
-                  "processing_time_ms","ipso_techniques","explanation_uk"]:
-        assert field in r.json(), f"Missing: {field}"
+    data = r.json()
+    for field in CheckResponse.model_fields:
+        assert field in data, f"Missing: {field}"

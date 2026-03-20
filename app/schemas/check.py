@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Any, Optional, Literal
 from pydantic import BaseModel, field_validator
 
 
@@ -39,3 +39,5 @@ class CheckResponse(BaseModel):
     source_domain: str
     language: str
     processing_time_ms: float
+    # NMVP2: same structure as orchestrator formula_breakdown (optional for backward compat)
+    formula_breakdown: Optional[dict[str, Any]] = None
