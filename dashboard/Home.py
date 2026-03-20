@@ -195,8 +195,7 @@ with tab1:
             st.rerun()
         
         if st.button("🗑️ Очистити", key="ex_clear"):
-            if "text_area_widget" in st.session_state:
-                st.session_state["text_area_widget"] = ""
+            st.session_state["prefill_request"] = ""
             st.rerun()
     
     if st.button("🔍 Аналізувати", type="primary"):
@@ -301,8 +300,7 @@ with tab1:
                 # Add clear button after analysis
                 if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
                     st.session_state.text_input = ""
-                    if "text_area_widget" in st.session_state:
-                        st.session_state["text_area_widget"] = ""
+                    st.session_state["prefill_request"] = ""
                     st.rerun()
         else:
             st.warning("Будь ласка, введіть текст для аналізу")
