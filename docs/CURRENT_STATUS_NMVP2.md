@@ -38,8 +38,8 @@ git rev-parse origin/main gitlab/main origin/nmvp2/development
 
 ## CI
 
-- **GitLab:** SAST через шаблон у корені `.gitlab-ci.yml`
-- **GitHub Actions:** за наявності workflow у `.github/workflows/` (перевірте репо)
+- **GitHub Actions:** `.github/workflows/ci.yml` — `pytest` на push/PR до `main`, push до гілок `nmvp2/**`
+- **GitLab:** SAST через `.gitlab-ci.yml` (шаблон Security/SAST)
 
 ## Локальні артефакти (не в git)
 
@@ -49,7 +49,7 @@ git rev-parse origin/main gitlab/main origin/nmvp2/development
 
 1. **GitLab — Branch protection:** захистити `main` (merge через MR або обмежені ролі), **без** постійного force push.
 2. **GitLab — Pull mirror** з GitHub (див. `docs/GIT_PRIMARY_MIRROR.md`), якщо хочете автоматичне підтягування замість лише `git push gitlab main`.
-3. **GitHub — Branch protection** для `main` + обов’язковий CI (pytest) на PR.
+3. **GitHub — Branch protection** для `main` і вимога **успішного workflow «CI»** на PR (workflow уже в репо).
 4. **Реліз:** тег `nmvp2-v1.x` на `main` після прийняття капстоуну.
 5. **README / Render:** оновити прод-деплой v2 окремим сервісом, коли буде готовий URL.
 
