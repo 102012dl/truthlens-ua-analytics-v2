@@ -60,13 +60,13 @@
 
 - Обов’язкові **Branch protection** і **Pull mirror** у веб-UI GitHub/GitLab — залишено без змін.
 
-## Автоматичні перевірки A–D (Composer / CI)
+## Автоматичні перевірки A–H (Composer / CI)
 
 ```powershell
 python scripts/verify_nmvp2_repo.py
 ```
 
-Деталі: `docs/CURSOR_NMVP2_CHECKS.md`.
+Деталі: `docs/CURSOR_NMVP2_CHECKS.md`. Звіт-знімок стану: `docs/NMVP2_STATUS_REPORT_20260320_0525.md`.
 
 ## Команди (для deliverable)
 
