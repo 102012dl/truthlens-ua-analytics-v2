@@ -25,7 +25,7 @@ git fetch gitlab
 git rev-parse origin/main gitlab/main origin/nmvp2/development
 ```
 
-*Фіксація на момент створення цього файлу:* усі три ref вказували на **`526f56a`** (коміт з GitLab SAST, оновлення README та `docs/GIT_PRIMARY_MIRROR.md`). Після нових push значення зміняться — орієнтуйтесь на вивід команди вище.
+*Приклад після останнього оновлення цього файлу в git:* усі три ref збігалися (див. `git log -1 --oneline`). Після нових push перевіряйте лише вивід `git rev-parse` вище.
 
 ## Що входить у NMVP2 (скорочено)
 
