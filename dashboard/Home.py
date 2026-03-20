@@ -175,11 +175,13 @@ with tab1:
     with col1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
+            value=st.session_state.get("main_text_input", ""),
             height=120,
             placeholder="Вставте текст або URL для перевірки...",
-            key="main_text_input",
+            key="text_area_widget",
             label_visibility="visible"
         )
+        st.session_state["main_text_input"] = text_input
         st.session_state.text_input = text_input
     
     with col2:
