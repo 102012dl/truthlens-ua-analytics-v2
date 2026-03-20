@@ -130,4 +130,5 @@ async def check_text(request: CheckRequest, db: AsyncSession = Depends(get_db)):
         source_domain=domain,
         language=request.language,
         processing_time_ms=total_ms,
+        formula_breakdown=result.get("formula_breakdown"),
     )

@@ -1,6 +1,6 @@
 # Що Cursor Composer має перевіряти автоматично (NMVP2)
 
-Один скрипт покриває блоки **A–D** з Auto-Builder плану:
+Один скрипт покриває блоки **A–H** (структура, консистентність, міграція, PR, **поля CheckResponse ↔ Home.py**, **JSON Schema (CheckResponse) ↔ model_fields**, смак README, наявність візуального чеклисту):
 
 ```powershell
 cd truthlens-ua-analytics-v2
@@ -36,7 +36,7 @@ python -m pytest tests/ -q
 - Моделі **UncertaintyPool** / feedback у `app/db/models.py`.
 - Наявність **`scripts/self_learning_pipeline.py`**.
 
-*Примітка:* повне збіг полів Dashboard ↔ OpenAPI краще дублювати ручним прогоном UI; скрипт робить мінімальну статичну перевірку.
+*Примітка:* повний збіг полів доповнюється секціями **E** та **H** у `verify_nmvp2_repo.py` та `docs/API_DASHBOARD_FIELD_AUDIT.md`; ручний UI — `docs/DASHBOARD_VISUAL_SMOKE.md`. Демо без Swagger — `docs/DEMO_NMVP2.md`.
 
 ## C. Migration completeness
 
@@ -49,6 +49,25 @@ python -m pytest tests/ -q
 - `docs/PR_SUMMARY_NMVP2.md`
 - згадка **pytest** / **tests** у README
 - поточна **git branch** (інформаційно)
+
+## E. CheckResponse ↔ `dashboard/Home.py`
+
+- Імпорт `CheckResponse` з `app/schemas/check.py` і порівняння імен полів з `result['…']` / `result.get('…')` у Home.
+- Розбіжності — **WARN** (не ламають exit 0), якщо лише додаткові ключі в UI.
+- Таблиця полів: `docs/API_DASHBOARD_FIELD_AUDIT.md`.
+
+## H. JSON Schema `CheckResponse` ↔ `model_fields`
+
+- `CheckResponse.model_json_schema()` → `properties` vs `CheckResponse.model_fields` (без `app.openapi()`).
+- Для демо без Swagger див. `docs/DEMO_NMVP2.md` (`TRUTHLENS_MINIMAL_OPENAPI=1`).
+
+## F. README (смак / обов’язкові згадки)
+
+Мінімальні підрядки: NMVP2, репозиторій v2, Verdict, docker-compose, pytest.
+
+## G. Візуальний регрес
+
+- Наявність `docs/DASHBOARD_VISUAL_SMOKE.md` (ручний чеклист; без фейкових скріншотів у CI).
 
 ## Інтеграція в CI
 

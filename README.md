@@ -220,7 +220,7 @@ cd truthlens-ua-analytics-v2
 docker-compose up --build -d
 ```
 
-**Перевірка:** http://localhost:8501 (дашборд), http://localhost:8000/docs (API).
+**Перевірка:** http://localhost:8501 (дашборд), http://localhost:8000/docs (Swagger — за замовчуванням). Для демо без OpenAPI UI: `TRUTHLENS_MINIMAL_OPENAPI=1` у середовищі (деталі: `docs/DEMO_NMVP2.md`).
 
 ### 2. Windows PowerShell
 
