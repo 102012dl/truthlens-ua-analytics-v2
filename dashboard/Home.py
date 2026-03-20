@@ -164,9 +164,9 @@ def analyze_text_locally(text: str):
 tab1, tab2, tab3 = st.tabs(["🏠 Головна", "📊 Аналіз", "📈 Статистика"])
 
 with tab1:
-    # Застосувати префілл з кнопок "Приклади" до створення text_area (Streamlit забороняє змінювати session_state ключ віджета після його створення)
+    # Застосувати префілл з кнопок "Приклади" до створення text_area
     if "prefill_request" in st.session_state:
-        st.session_state["main_text_input"] = st.session_state.pop("prefill_request")
+        st.session_state["text_area_widget"] = st.session_state.pop("prefill_request")
 
     st.markdown("### 🎯 Швидка перевірка новини")
     
@@ -175,13 +175,11 @@ with tab1:
     with col1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-            value=st.session_state.get("main_text_input", ""),
             height=120,
             placeholder="Вставте текст або URL для перевірки...",
             key="text_area_widget",
             label_visibility="visible"
         )
-        st.session_state["main_text_input"] = text_input
         st.session_state.text_input = text_input
     
     with col2:
@@ -197,7 +195,8 @@ with tab1:
             st.rerun()
         
         if st.button("🗑️ Очистити", key="ex_clear"):
-            st.session_state["prefill_request"] = ""
+            if "text_area_widget" in st.session_state:
+                st.session_state["text_area_widget"] = ""
             st.rerun()
     
     if st.button("🔍 Аналізувати", type="primary"):
@@ -302,7 +301,8 @@ with tab1:
                 # Add clear button after analysis
                 if st.button("🗑️ Очистити результат", key="clear_after_analysis"):
                     st.session_state.text_input = ""
-                    st.session_state["main_text_input"] = ""
+                    if "text_area_widget" in st.session_state:
+                        st.session_state["text_area_widget"] = ""
                     st.rerun()
         else:
             st.warning("Будь ласка, введіть текст для аналізу")
