@@ -102,8 +102,8 @@ def analyze_text_locally(text: str):
     if re.search(r'ЗАМОВЧУЮТЬ|ХОВАЮТЬ|ПРАВДА|НА СПРАВДІ', text, re.IGNORECASE):
         ipso_techniques.append("conspiracy_framing")
     
-    # Anonymous sources
-    if re.search(r'ДЖЕРЕЛА_ПОВІДОМИЛИ|ЕКСПЕРТИ_СТВЕРДЖУЮТЬ|ІНФОРМУЮТЬ', text, re.IGNORECASE):
+    # Anonymous sources & lack of detailed sources
+    if re.search(r'ДЖЕРЕЛ[АОИ]|ЕКСПЕРТ[И]|ІНФОРМУЮТЬ|КАЖУТЬ|ПОВІДОМЛЯ[ЄЮ]ТЬСЯ|ЧУТКИ', text, re.IGNORECASE):
         ipso_techniques.append("anonymous_sources")
     
     # Military disinfo
@@ -123,7 +123,7 @@ def analyze_text_locally(text: str):
         ipso_techniques.append("deepfake_indicator")
     
     # Розрахунок fake score
-    fake_score = min(0.95, len(ipso_techniques) * 0.15)
+    fake_score = min(0.95, len(ipso_techniques) * 0.38) # Підвищено вагу до 0.38 щоб 1 техніка давала SUSPICIOUS (>= 0.35)
     
     # Використання моделі якщо вона доступна
     if baseline_model is not None:
