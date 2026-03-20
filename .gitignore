@@ -37,3 +37,7 @@ data/raw/**/*.csv
 artifacts/*.joblib
 mlruns/
 *.db
+
+# Local compare / audit exports (regenerate if needed)
+docs/compare/
+docs/audit/
