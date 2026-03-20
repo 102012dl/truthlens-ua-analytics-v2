@@ -313,13 +313,14 @@ with tab2:
     st.markdown("""
     **Про систему:**
     - **Точність:** 100% на тестових кейсах (31/31)
-    - **Модель:** LinearSVC + TF-IDF + Rule-based
+    - **Модель:** Ensemble (LinearSVC + ukr-roberta-base) + Rule-based
     - **ІПСО детекція:** 10+ технік маніпуляції
     - **Час відповіді:** ~77мс
     
     **Архітектура:**
     - **Multi-Agent System:** Orchestrator + Classifier + IPSO Detector
-    - **ML Model:** LinearSVC з TF-IDF векторизацією
+    - **ML Model:** Ансамбль LinearSVC (лексика) та ukr-roberta-base (семантика)
+    - **Active Learning:** Автоматичний цикл перенавчання (Feedback Loop)
     - **Rule-based:** Fallback для специфічних патернів
     - **IPSO Detection:** 10+ технік маніпуляції
     """)
@@ -340,10 +341,11 @@ with tab2:
     
     st.markdown("""
     **Технологічний стек:**
-    - **Backend:** FastAPI + Python 3.10+
+    - **Backend:** FastAPI + Python 3.10+ + PostgreSQL
     - **Frontend:** Streamlit + Plotly
-    - **ML:** Scikit-learn + NumPy + Pandas
-    - **Deploy:** Render Cloud Platform
+    - **ML:** Scikit-learn + HuggingFace Transformers + PyTorch
+    - **MLOps:** MLflow + DagsHub + Alembic
+    - **Deploy:** Render Cloud Platform / Docker
     - **Version Control:** GitHub + GitLab
     """)
 
