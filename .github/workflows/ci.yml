@@ -26,5 +26,5 @@ jobs:
       - name: Run tests
         run: pytest tests/ -q --tb=short
 
-      - name: NMVP2 repo verify (A–D)
+      - name: NMVP2 repo verify (A–H)
         run: python scripts/verify_nmvp2_repo.py

@@ -13,7 +13,7 @@ Author: 102012dl | Email: 102012dl@gmail.com
 
 ## 📋 Зміст
 - [🎯 Огляд проєкту](#-огляд-проєкту)
-- [🏗 Архітектура](#-архітектура)
+- [🏗 Архітектура](#-архітектура) · [повний опис шарів і моделей → `docs/ARCHITECTURE_NMVP2.md`](docs/ARCHITECTURE_NMVP2.md)
 - [🛠 Технології](#-технології)
 - [🚀 Швидкий старт](#-швидкий-старт)
 - [🧠 ML Pipeline](#-ml-pipeline)
@@ -61,16 +61,16 @@ Author: 102012dl | Email: 102012dl@gmail.com
 
 ## 🏗 Архітектура (NMVP2)
 
-Система реалізована як мульти-агентна платформа з гібридним ансамблем моделей та циклом активного перенавчання.
+Система — **мульти-компонентний** пайплайн: лексичний ML (LinearSVC + TF-IDF або rule-based fallback), за наявності артефакту — **семантика на `ukr-roberta-base`**, **ІПСО-детектор** (regex), **скоринг джерела**, потім **Verdict Engine** з фіксованими вагами. Детальний шаровий опис, чесні fallback’и та діаграми — у **[`docs/ARCHITECTURE_NMVP2.md`](docs/ARCHITECTURE_NMVP2.md)**.
 
 ### Verdict Engine Formula
-Основним нововведенням NMVP2 є **Verdict Engine**, який розраховує фінальний бал за формулою:
+**Verdict Engine** (`app/agents/verdict_engine.py`) рахує:
 
 $$Final\_Score = (0.3 \times ML\_Score) + (0.4 \times RoBERTa\_Score) + (0.3 \times IPSO\_Penalty)$$
 
-- **ML_Score**: Базовий класифікатор (LinearSVC + TF-IDF), тренований на лексичних патернах.
-- **RoBERTa_Score**: Семантичний аналіз контексту через `ukr-roberta-base`.
-- **IPSO_Penalty**: Штраф, що базується на кількості виявлених технік маніпулятивного впливу.
+- **ML_Score**: вихід лексичного класифікатора (`LinearSVC` + TF-IDF з `artifacts/best_model.joblib`, інакше — евристики).
+- **RoBERTa_Score**: якщо завантажено `UkrainianClassifier` (`UA_MODEL_PATH`, базово `youscan/ukr-roberta-base`) — семантична оцінка; **якщо моделі немає**, у оркестраторі використовується той самий `fake_score`, що й з ML-кроку (окремий «семантичний» шар не активний).
+- **IPSO_Penalty**: нормалізована кількість виявлених технік (див. `orchestrator.py`).
 
 **Порогові значення:**
 - 🟢 **REAL**: < 0.35
@@ -78,65 +78,57 @@ $$Final\_Score = (0.3 \times ML\_Score) + (0.4 \times RoBERTa\_Score) + (0.3 \ti
 - 🔴 **FAKE**: > 0.65
 
 ### Self-Learning Pipeline (Active Learning)
-Система автоматично вдосконалюється через зворотний зв'язок:
-1. **Uncertainty Pool**: Тексти з вердиктом `SUSPICIOUS` автоматично збираються для аналізу.
-2. **Feedback Loop**: Користувачі або експерти валідують вердикти через `/api/v1/feedback`.
-3. **Data Augmentation**: Підтверджені фейки використовуються для генерації синтетичних даних (Data Augmentation).
-4. **Auto-Retrain**: Нові дані автоматично включаються у наступний цикл тренування моделі.
+1. **Uncertainty Pool**: записи з вердиктом `SUSPICIOUS` для подальшого розгляду.
+2. **Feedback**: `POST /api/v1/feedback` для збору міток.
+3. **Пайплайн перенавчання**: скрипт `scripts/self_learning_pipeline.py` та ноутбуки — **окремий крок** від онлайн-інференсу (не «автоматичний ретрейн» без вашого запуску).
 
 ### Схема роботи
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TruthLens UA Platform                        │
+│                 TruthLens UA Analytics (NMVP2)                   │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐           │
-│  │  Streamlit  │   │   Mobile    │   │    API      │           │
-│  │  Dashboard  │   │    App      │   │  Clients    │           │
-│  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘           │
-│         │                 │                 │                   │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐             │
+│  │  Streamlit  │   │  (інші       │   │  REST API   │             │
+│  │  Dashboard  │   │   клієнти)   │   │  Clients    │             │
+│  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘             │
 │         └─────────────────┼─────────────────┘                   │
-│                           │                                     │
-│  ┌────────────────────────▼────────────────────────┐           │
-│  │              API Gateway (FastAPI)               │           │
-│  │  • Validation  • Rate Limiting  • CORS         │           │
-│  └────────────────────────┬────────────────────────┘           │
-│                           │                                     │
-│  ┌────────────────────────▼────────────────────────┐           │
-│  │            Multi-Agent Engine                   │           │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────┐ │           │
-│  │  │   Classifier │ │ IPSO Detector│ │ Scorer   │ │           │
-│  │  │ LinearSVC+TF │ │  Regex Rules │ │ Source   │ │           │
-│  │  └──────────────┘ └──────────────┘ └──────────┘ │           │
-│  └────────────────────────┬────────────────────────┘           │
-│                           │                                     │
-│  ┌────────────────────────▼────────────────────────┐           │
-│  │              Data & Storage Layer               │           │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐        │           │
-│  │  │PostgreSQL│ │  Redis   │ │ Docker   │        │           │
-│  │  └──────────┘ └──────────┘ └──────────┘        │           │
-│  └─────────────────────────────────────────────────┘           │
+│                           ▼                                     │
+│              ┌────────────────────────┐                         │
+│              │ FastAPI (Pydantic, CORS) │                         │
+│              └───────────┬────────────┘                         │
+│                          ▼                                      │
+│              ┌────────────────────────┐                         │
+│              │ TruthLensOrchestrator  │                         │
+│              │ ML → UA-RoBERTa? →     │                         │
+│              │ IPSO → Source →        │                         │
+│              │ VerdictEngine          │                         │
+│              └───────────┬────────────┘                         │
+│                          ▼                                      │
+│              ┌────────────────────────┐                         │
+│              │ PostgreSQL + артефакти │                         │
+│              │ (joblib, опц. RoBERTa) │                         │
+│              └────────────────────────┘                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+*У базовому `docker-compose.yml` **немає Redis**; Prometheus/Grafana — опційно (`profile: monitoring`).*
 
 ### Workflow Diagram
 
 ```mermaid
-graph TD
-    A[📝 Input Text] --> B[🧠 TruthLensOrchestrator]
-    B --> C[1️⃣ ML Classification]
-    B --> D[2️⃣ IPSO Detection]
-    B --> E[3️⃣ Source Scoring]
-    C --> F[LinearSVC + TF-IDF]
-    D --> G[10+ IPSO Techniques]
-    E --> H[Domain Trust DB]
-    F --> I[Verdict Logic]
-    G --> I
-    H --> I
-    I --> J[📊 Final Result]
-    J --> K[Credibility Score]
-    J --> L[Risk Level]
-    J --> M[IPSO Report]
+flowchart TD
+    A[📝 Input Text] --> B[TruthLensOrchestrator]
+    B --> C[1️⃣ ML: LinearSVC + TF-IDF або rules]
+    B --> D[2️⃣ UA: ukr-roberta якщо є модель]
+    B --> E[3️⃣ IPSO regex → penalty]
+    B --> F[4️⃣ SourceScorer]
+    C --> V[VerdictEngine 0.3 / 0.4 / 0.3]
+    D --> V
+    E --> V
+    F --> V
+    V --> G[📊 verdict + credibility + formula_breakdown]
+    G --> H[IPSO list + explanation_uk]
 ```
 
 ---
@@ -166,9 +158,9 @@ graph TD
 | Категорія | Технології |
 |-----------|------------|
 | **Containerization** | Docker, Docker Compose |
-| **CI/CD** | GitHub Actions |
-| **Security** | Bandit, Safety |
-| **Monitoring** | Custom logging |
+| **CI/CD** | GitHub Actions (`pytest` + `scripts/verify_nmvp2_repo.py`); GitLab — SAST (`.gitlab-ci.yml`) |
+| **Security** | Pydantic-валідація; опційно Bandit/Safety локально; на GitLab — шаблон SAST |
+| **Monitoring** | Prometheus/Grafana у Compose (`profile: monitoring`), логування в додатку |
 
 ---
 
@@ -485,30 +477,14 @@ def get_override(self, ipso: List[str]) -> bool:
 
 ### GitHub Actions Workflow
 
-```yaml
-name: CI/CD Pipeline
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: pytest --cov=app tests/
-      - name: Security scan
-        run: bandit -r app/
-      - name: Dependency check
-        run: safety check
-```
+Фактичний pipeline — [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `pytest tests/`, `python scripts/verify_nmvp2_repo.py` (NMVP2 A–H). Окремих кроків Bandit/Safety у workflow немає (можна додати локально або в GitLab).
 
 ### Security Checklist
 
 - ✅ Input validation (Pydantic)
 - ✅ CORS configuration
-- ✅ Docker non-root user
-- ✅ Dependency scanning (Safety)
-- ✅ Code security analysis (Bandit)
-- ✅ Rate limiting (FastAPI)
+- ⚠️ Rate limiting у коді не увімкнено за замовчуванням
+- ✅ GitLab SAST (`.gitlab-ci.yml`), якщо репозиторій на GitLab активний
 
 ---
 
@@ -535,13 +511,15 @@ docker run -d \
 # .env.prod
 MODEL_PATH=/app/artifacts/best_model.joblib
 DATABASE_URL=postgresql://user:pass@db:5432/truthlens
-REDIS_URL=redis://redis:6379
+# REDIS_URL — лише якщо додасте Redis у свій деплой (у шаблонному Compose NMVP2 його немає)
 LOG_LEVEL=INFO
 ```
 
 ---
 
 ## 📊 Результати
+
+*Наведені нижче таблиці з демо-прогонів **ілюстративні**; на реальних даних метрики залежать від датасету, моделей у `artifacts/` та конфігурації. Детальна архітектура — [`docs/ARCHITECTURE_NMVP2.md`](docs/ARCHITECTURE_NMVP2.md).*
 
 ### Demo Cases Evaluation (31 cases)
 

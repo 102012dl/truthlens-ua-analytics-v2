@@ -57,6 +57,7 @@ git rev-parse origin/main gitlab/main origin/nmvp2/development
 
 | Файл | Призначення |
 |------|-------------|
+| `docs/ARCHITECTURE_NMVP2.md` | Шари, моделі, формула, діаграми (канонічно до коду) |
 | `docs/GIT_PRIMARY_MIRROR.md` | Primary + mirror, push, перевірка SHA |
 | `docs/DATASET_SETUP.md` | Завантаження ISOT тощо |
 | `data/README.md` | Що в `data/`, що не комітиться |
