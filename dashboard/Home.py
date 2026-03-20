@@ -175,7 +175,6 @@ with tab1:
     with col1:
         text_input = st.text_area(
             "Введіть текст новини для перевірки:",
-            value="",
             height=120,
             placeholder="Вставте текст або URL для перевірки...",
             key="main_text_input",
