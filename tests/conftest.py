@@ -1,13 +1,25 @@
 """Test configuration for TruthLens UA Analytics."""
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
+
 from app.main import app
-from unittest.mock import AsyncMock, patch
+from app.db.database import get_db
+
 
 @pytest.fixture(scope="module")
 def client():
-    # Override database dependency for tests
-    with patch("app.db.database.get_db") as mock_get_db:
-        mock_get_db.return_value = AsyncMock()
-        with TestClient(app) as c:
-            yield c
+    async def _mock_get_db():
+        session = AsyncMock()
+        session.get = AsyncMock(return_value=None)
+        session.commit = AsyncMock()
+        session.rollback = AsyncMock()
+        session.add = AsyncMock()
+        session.flush = AsyncMock()
+        session.close = AsyncMock()
+        yield session
+
+    app.dependency_overrides[get_db] = _mock_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()

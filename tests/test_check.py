@@ -27,11 +27,7 @@ def test_check_empty_input_fails(client):
     assert r.status_code == 400
 
 def test_check_response_has_all_fields(client):
-<<<<<<< HEAD
     r = client.post("/check", json={"text": "Це довге тестове речення українською мовою для перевірки всіх полів."})
-=======
-    r = client.post("/check", json={"text": "Тестова новина для перевірки системи"})
->>>>>>> c8044a54feafecac1b7a862c9206bccc05e21870
     assert r.status_code == 200
     for field in ["verdict","credibility_score","fake_score","confidence",
                   "processing_time_ms","ipso_techniques","explanation_uk"]:

@@ -59,9 +59,32 @@ Author: 102012dl | Email: 102012dl@gmail.com
 
 ---
 
-## 🏗 Архітектура
+## 🏗 Архітектура (NMVP2)
 
-Система реалізована як мульти-агентна платформа з мікросервісною архітектурою.
+Система реалізована як мульти-агентна платформа з гібридним ансамблем моделей та циклом активного перенавчання.
+
+### Verdict Engine Formula
+Основним нововведенням NMVP2 є **Verdict Engine**, який розраховує фінальний бал за формулою:
+
+$$Final\_Score = (0.3 \times ML\_Score) + (0.4 \times RoBERTa\_Score) + (0.3 \times IPSO\_Penalty)$$
+
+- **ML_Score**: Базовий класифікатор (LinearSVC + TF-IDF), тренований на лексичних патернах.
+- **RoBERTa_Score**: Семантичний аналіз контексту через `ukr-roberta-base`.
+- **IPSO_Penalty**: Штраф, що базується на кількості виявлених технік маніпулятивного впливу.
+
+**Порогові значення:**
+- 🟢 **REAL**: < 0.35
+- 🟡 **SUSPICIOUS**: 0.35 - 0.65
+- 🔴 **FAKE**: > 0.65
+
+### Self-Learning Pipeline (Active Learning)
+Система автоматично вдосконалюється через зворотний зв'язок:
+1. **Uncertainty Pool**: Тексти з вердиктом `SUSPICIOUS` автоматично збираються для аналізу.
+2. **Feedback Loop**: Користувачі або експерти валідують вердикти через `/api/v1/feedback`.
+3. **Data Augmentation**: Підтверджені фейки використовуються для генерації синтетичних даних (Data Augmentation).
+4. **Auto-Retrain**: Нові дані автоматично включаються у наступний цикл тренування моделі.
+
+### Схема роботи
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -149,18 +172,30 @@ graph TD
 
 ---
 
-## 🚀 Швидкий старт (NMVP1 — робочі рішення)
+## 🚀 Швидкий старт (NMVP2 — truthlens-ua-analytics-v2)
 
-Усі команди виконувати **з кореня репо** (після `cd truthlens-ua-analytics`). Якщо `.\start.ps1` не знайдено — спочатку виконайте `cd` у папку клону.
+Усі команди виконувати **з кореня репо** (після `cd truthlens-ua-analytics-v2`). Якщо `.\start.ps1` не знайдено — спочатку виконайте `cd` у папку клону.
 
 ### 📊 Робота з даними та ML (Jupyter Notebooks)
 
-Для візуалізації та аудиту наявних наборів даних:
-1. Запустіть Jupyter Notebook локально:
+Для візуалізації, аудиту датасетів і відтворення експериментів:
+1. Запустіть Jupyter локально:
 ```bash
 jupyter notebook
 ```
-2. Перейдіть до папки `notebooks/` та відкривайте файли: `01_problem_validation.ipynb`, `02_dataset_audit.ipynb`, `03_eda_ua_news.ipynb`, `04_baseline_classification.ipynb`.
+2. Відкрийте потрібні файли в `notebooks/`:
+
+| Ноутбук | Опис |
+|---------|------|
+| `01_problem_validation.ipynb` | Валідація задачі |
+| `02_dataset_audit.ipynb` | Аудит даних (локальний gold + опц. HF) |
+| `03_eda_ua_news.ipynb` | EDA українських новин |
+| `04_baseline_classification.ipynb` | Базова класифікація |
+| `05_ua_roberta_training.ipynb` | Експерименти з ukr-roberta (NMVP2) |
+| `01_isot_fake_news_mlflow.ipynb` | ISOT (EN) + MLflow → `artifacts/best_model.joblib` ([джерело: TruthLens-UA](https://github.com/102012dl/TruthLens-UA/blob/main/notebooks/01_isot_fake_news_mlflow.ipynb)) |
+| `03_ua_nlp_training.ipynb` | UA/EN A/B (LinearSVC, LogReg, RF) + MLflow ([джерело: TruthLens-UA](https://github.com/102012dl/TruthLens-UA/blob/main/notebooks/03_ua_nlp_training.ipynb)) |
+
+**Примітка:** повний набір ноутбуків з репозиторію **TruthLens-UA** див. [тут](https://github.com/102012dl/TruthLens-UA/tree/main/notebooks). Інструкції з завантаження ISOT без коміту в git — у `docs/DATASET_SETUP.md` та `data/README.md`.
 
 ### 📚 Джерела Даних
 Система використовує лише офіційно дозволені набори даних для оцінки джерел:
@@ -169,17 +204,18 @@ jupyter notebook
 
 ### Посилання для перевірки
 
-| Ресурс | URL |
-|--------|-----|
-| **Live (Render)** | https://truthlens-ua-analytics.onrender.com |
-| **GitHub** | https://github.com/102012dl/truthlens-ua-analytics |
-| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics |
+| Ресурс | URL | Примітка |
+|--------|-----|----------|
+| **Live (Render)** | https://truthlens-ua-analytics.onrender.com | NMVP1 demo |
+| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | Поточний репо |
+| **GitHub NMVP1** | https://github.com/102012dl/truthlens-ua-analytics | Архів |
+| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | Backup |
 
 ### 1. Docker (рекомендовано)
 
 ```bash
-git clone https://github.com/102012dl/truthlens-ua-analytics.git
-cd truthlens-ua-analytics
+git clone https://github.com/102012dl/truthlens-ua-analytics-v2.git
+cd truthlens-ua-analytics-v2
 docker-compose up --build -d
 ```
 
@@ -188,8 +224,8 @@ docker-compose up --build -d
 ### 2. Windows PowerShell
 
 ```powershell
-git clone https://github.com/102012dl/truthlens-ua-analytics.git
-cd truthlens-ua-analytics
+git clone https://github.com/102012dl/truthlens-ua-analytics-v2.git
+cd truthlens-ua-analytics-v2
 .\start.ps1
 ```
 
@@ -198,8 +234,8 @@ cd truthlens-ua-analytics
 ### 3. WSL / Linux
 
 ```bash
-git clone https://github.com/102012dl/truthlens-ua-analytics.git
-cd truthlens-ua-analytics
+git clone https://github.com/102012dl/truthlens-ua-analytics-v2.git
+cd truthlens-ua-analytics-v2
 chmod +x start.sh
 ./start.sh
 ```
@@ -209,21 +245,21 @@ chmod +x start.sh
 ### 4. Вручну (два термінали)
 
 ```bash
-cd truthlens-ua-analytics
+cd truthlens-ua-analytics-v2
 # Термінал 1
 python -m uvicorn app.main:app --reload --port 8000
 # Термінал 2
-streamlit run dashboard/app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 ---
 
 ### 🌐 Деплой на Render
 
-- Підключити репо: https://github.com/102012dl/truthlens-ua-analytics  
+- Підключити репо: https://github.com/102012dl/truthlens-ua-analytics-v2 (гілка з повним кодом, напр. `nmvp2/development`, якщо `main` ще мінімальний)  
 - Build: `pip install -r requirements.txt` (або з `dashboard/` за інструкціями Render)  
-- Start: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`  
-- Live: **https://truthlens-ua-analytics.onrender.com**
+- Start: `streamlit run dashboard/Home.py --server.port $PORT --server.address 0.0.0.0`  
+- Live (приклад NMVP1): **https://truthlens-ua-analytics.onrender.com**
 
 ---
 
@@ -231,28 +267,28 @@ streamlit run dashboard/app.py --server.port 8501
 
 **Windows (PowerShell):**
 ```powershell
-cd truthlens-ua-analytics
+cd truthlens-ua-analytics-v2
 python -m venv venv
 venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 # Термінал 1:
 python -m uvicorn app.main:app --reload --port 8000
 # Термінал 2:
-streamlit run dashboard/app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 **WSL / Linux:**
 ```bash
-cd truthlens-ua-analytics
+cd truthlens-ua-analytics-v2
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 # Термінал 1: python -m uvicorn app.main:app --reload --port 8000
-# Термінал 2: streamlit run dashboard/app.py --server.port 8501
+# Термінал 2: streamlit run dashboard/Home.py --server.port 8501
 ```
 
 **Перевірка (локально):** http://localhost:8501 та http://localhost:8000/health
 
-**Синхронізація репо:** після змін виконати `git add .` → `git commit -m "..."` → `git push origin main` (GitHub); GitLab дзеркалиться через CI за потреби.
+**Синхронізація репо:** після змін виконати `git add .` → `git commit -m "..."` → `git push origin <гілка>` (наприклад `nmvp2/development` або PR у `main`); GitLab — за потреби.
 
 ### 📱 Швидкий доступ
 
@@ -269,7 +305,7 @@ pip install -r requirements.txt
 - `start.bat: command not found` → використовуйте `./start.sh` (Linux/Mac) або `.\start.ps1` (Windows)
 - `source не розпізнано` → використовуйте `venv\Scripts\activate` в Windows
 - `ModuleNotFoundError: No module named 'app'` → переконайтеся що ви в директорії проекту
-- `File does not exist: dashboard/app.py` → запустіть з правильної директорії
+- `File does not exist: dashboard/Home.py` → запустіть з кореня `truthlens-ua-analytics-v2`
 - `Address already in use` → змініть порт або закрийте попередні процеси
 - `API недоступний у dashboard` → перевірте, що в sidebar встановлено `http://127.0.0.1:8000`
 
@@ -279,17 +315,18 @@ pip install -r requirements.txt
 curl http://127.0.0.1:8000/health
 
 # Test Dashboard
-streamlit run dashboard/app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 **📱 Правильна структура директорії:**
 ```
-truthlens-ua-analytics/
+truthlens-ua-analytics-v2/
 ├── app/
 │   └── api/
 │       └── routes/
 ├── dashboard/
-│   └── app.py
+│   └── Home.py
+├── notebooks/
 ├── requirements.txt
 ├── start.sh (Linux/Mac)
 ├── start.ps1 (Windows)
@@ -543,10 +580,12 @@ MIT License - див. файл [LICENSE](LICENSE).
 
 | Платформа | Посилання | Статус |
 |-----------|-----------|--------|
-| **GitHub** | https://github.com/102012dl/truthlens-ua-analytics | ✅ Основний |
-| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | ✅ Backup |
-| **Render Dashboard** | https://truthlens-ua-analytics.onrender.com | 🚀 Live Demo |
-| **Render API / legacy endpoint** | https://truthlens-ua.onrender.com | ℹ️ Separate service root |
+| **GitHub NMVP2** | https://github.com/102012dl/truthlens-ua-analytics-v2 | ✅ Поточний (NMVP2) |
+| **GitHub NMVP1** | https://github.com/102012dl/truthlens-ua-analytics | Архів |
+| **TruthLens-UA (legacy ноутбуки)** | https://github.com/102012dl/TruthLens-UA/tree/main/notebooks | ISOT / UA NLP |
+| **GitLab** | https://gitlab.com/102012dl/truthlens-ua-analytics | Backup |
+| **Render Dashboard** | https://truthlens-ua-analytics.onrender.com | 🚀 Live Demo (NMVP1) |
+| **Render API / legacy endpoint** | https://truthlens-ua.onrender.com | ℹ️ Окремий сервіс |
 
 ---
 

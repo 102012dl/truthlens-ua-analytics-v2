@@ -4,7 +4,7 @@ def test_feedback_valid(client):
     check_id = r.json().get("article_id", 1)  # Fallback to 1 if not present
     
     # Submit feedback
-    r2 = client.post("/feedback", json={
+    r2 = client.post("/api/v1/feedback", json={
         "check_id": check_id,
         "correct_verdict": "FAKE",
         "user_type": "test_user"
