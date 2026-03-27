@@ -29,6 +29,9 @@ if ($LASTEXITCODE -ne 0) {
     Read-Host "Press Enter to exit"
     exit 1
 }
+if (Test-Path "dashboard\requirements.txt") {
+    pip install -r dashboard\requirements.txt
+}
 
 Write-Host ""
 Write-Host "[4/4] Starting services..." -ForegroundColor Yellow
@@ -39,10 +42,9 @@ $apiProcess = Start-Process -FilePath "python" -ArgumentList "-m", "uvicorn", "a
 Write-Host "Waiting for API to start..." -ForegroundColor Cyan
 Start-Sleep -Seconds 3
 
-Write-Host "Starting Dashboard..." -ForegroundColor Cyan
-$dashboardPath = Join-Path $repoPath "dashboard"
+Write-Host "Starting Dashboard (dashboard/Home.py)..." -ForegroundColor Cyan
 try {
-    streamlit run "$dashboardPath\app.py" --server.port 8501
+    streamlit run (Join-Path $repoPath "dashboard\Home.py") --server.port 8501
 } finally {
     Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue
 }

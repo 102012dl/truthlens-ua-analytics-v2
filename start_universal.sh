@@ -3,13 +3,8 @@
 echo "TruthLens UA Analytics - Starting..."
 echo "=================================="
 
-if grep -q Microsoft /proc/version 2>/dev/null; then
-    PROJECT_PATH="/mnt/c/Users/home2/Downloads/truthlens-ua-analytics"
-else
-    PROJECT_PATH="$(pwd)"
-fi
-
-cd "$PROJECT_PATH" || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
 
 if command -v docker >/dev/null 2>&1 && command -v docker-compose >/dev/null 2>&1; then
     echo "Docker found - checking daemon..."
@@ -33,14 +28,13 @@ else
 fi
 
 echo "Starting API server..."
-python -m uvicorn app.main:app --reload --port 8000 &
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 &
 API_PID=$!
 
 sleep 3
 
-echo "Starting Dashboard..."
-cd dashboard || exit 1
-streamlit run app.py --server.port 8501 &
+echo "Starting Dashboard (dashboard/Home.py)..."
+streamlit run dashboard/Home.py --server.port 8501 --server.address 127.0.0.1 &
 DASHBOARD_PID=$!
 
 echo ""

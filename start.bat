@@ -30,6 +30,6 @@ timeout /t 3 /nobreak > nul
 
 echo.
 echo [4/4] Starting Dashboard...
-streamlit run dashboard/app.py --server.port 8501
+streamlit run dashboard\Home.py --server.port 8501
 
 pause

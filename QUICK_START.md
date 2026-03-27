@@ -37,7 +37,7 @@ echo "MODEL_PATH=artifacts/best_model.joblib" > .env
 python -m uvicorn app.main:app --reload --port 8000
 
 # 4. Запуск Dashboard (в іншому терміналі)
-streamlit run dashboard/app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 ### 2. Альтернативний запуск через Render
@@ -48,7 +48,7 @@ streamlit run dashboard/app.py --server.port 8501
 3. Створіть Web Service
 4. Python Runtime
 5. Build Command: `pip install -r requirements.txt`
-6. Start Command: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`
+6. Start Command: `streamlit run dashboard/Home.py --server.port $PORT --server.address 0.0.0.0`
 
 ### 3. Docker Quick Fix
 
@@ -72,7 +72,7 @@ docker-compose ps
 **Рішення:** Створити .env файл з необхідними змінними
 
 ### Проблема 2: Невірний шлях до Streamlit
-**Рішення:** Використовувати `dashboard/app.py` замість `dashboard/pages/Home.py`
+**Рішення:** Точка входу Streamlit — `dashboard/Home.py` (не `app.py`). Запускайте з кореня репозиторія.
 
 ### Проблема 3: PowerShell синтаксис
 **Рішення:** Використовувати PowerShell-сумісні команди

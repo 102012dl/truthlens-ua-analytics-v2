@@ -17,9 +17,9 @@
 
 - `app.main:app` is the active FastAPI entrypoint
 - `/check` no longer hard-fails when DB persistence is unavailable
-- `dashboard/app.py` prefers `127.0.0.1` for local API access
+- `dashboard/Home.py` prefers `127.0.0.1` for local API access
 - URL inputs from dashboard are submitted as `url`, not plain `text`
-- `docker-compose.yml` runs `dashboard/app.py`
+- `docker-compose.yml` runs `streamlit run Home.py` (context `./dashboard`)
 - startup scripts point to current entrypoints
 
 ## Cleanup status
@@ -80,7 +80,7 @@ python -m uvicorn app.main:app --reload --port 8000
 
 ```powershell
 cd C:\Users\home2\Downloads\truthlens-ua-analytics\dashboard
-streamlit run app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 ### WSL / Linux
@@ -92,7 +92,7 @@ python -m uvicorn app.main:app --reload --port 8000
 
 ```bash
 cd /mnt/c/Users/home2/Downloads/truthlens-ua-analytics/dashboard
-streamlit run app.py --server.port 8501
+streamlit run dashboard/Home.py --server.port 8501
 ```
 
 ### Docker

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from datetime import datetime
+from datetime import datetime, timezone
+
 from app.db.database import check_db_connection
 
 router = APIRouter()
@@ -18,5 +19,5 @@ async def health_check():
         "status": overall_status,
         "db": db_status,
         "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }

@@ -11,7 +11,7 @@
 - **Name**: truthlens-ua
 - **Runtime**: Python
 - **Build Command**: `pip install -r requirements.txt`
-- **Start Command**: `streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0`
+- **Start Command**: `streamlit run dashboard/Home.py --server.port $PORT --server.address 0.0.0.0`
 
 ### Step 3: Environment Variables
 Add these in Render dashboard:
@@ -64,5 +64,5 @@ docker-compose ps
 curl http://localhost:8000/health
 
 # Test Dashboard
-streamlit run dashboard/app.py
+streamlit run dashboard/Home.py
 ```

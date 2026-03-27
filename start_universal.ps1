@@ -34,9 +34,9 @@ $apiProcess = Start-Process -FilePath "python" -ArgumentList "-m", "uvicorn", "a
 
 Start-Sleep -Seconds 3
 
-$dashboardPath = Join-Path $repoPath "dashboard"
-Write-Host "Starting Dashboard..." -ForegroundColor Cyan
-$dashboardProcess = Start-Process -FilePath "streamlit" -ArgumentList "run", "app.py", "--server.port", "8501" -WorkingDirectory $dashboardPath -PassThru
+Write-Host "Starting Dashboard (dashboard/Home.py)..." -ForegroundColor Cyan
+$homePy = Join-Path $repoPath "dashboard\Home.py"
+$dashboardProcess = Start-Process -FilePath "streamlit" -ArgumentList "run", $homePy, "--server.port", "8501" -WorkingDirectory $repoPath -PassThru
 
 Write-Host ""
 Write-Host "Services started:" -ForegroundColor Green

@@ -320,6 +320,33 @@ def check_i_rate_limit_and_deps() -> None:
         fail("[I] Rate limit not applied in check route")
 
 
+# --- J. Start scripts point at dashboard/Home.py (not removed app.py) ---
+
+
+def check_j_start_scripts() -> None:
+    print("\n=== J. Start scripts (Streamlit entry) ===")
+    files = [
+        "start.sh",
+        "start.bat",
+        "start.ps1",
+        "start_universal.sh",
+        "start_universal.ps1",
+    ]
+    bad = "dashboard/app.py"
+    for rel in files:
+        p = ROOT / rel
+        if not p.is_file():
+            fail(f"[J] Missing start script: {rel}")
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if bad in text or "streamlit run app.py" in text:
+            fail(f"[J] {rel} still references legacy app.py — use dashboard/Home.py")
+        if "Home.py" not in text:
+            fail(f"[J] {rel} should reference Home.py as Streamlit entry")
+        else:
+            ok(f"[J] {rel} uses Home.py")
+
+
 # --- D. PR readiness ---
 
 
@@ -358,6 +385,7 @@ def main() -> int:
     check_f_readme_smak()
     check_g_visual_doc()
     check_i_rate_limit_and_deps()
+    check_j_start_scripts()
 
     print("\n=== Summary ===")
     if WARNINGS:
