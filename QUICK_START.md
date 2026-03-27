@@ -19,6 +19,8 @@ chmod +x start.sh
 
 Якщо ви бачите помилку `.\start.ps1 : The term '.\start.ps1' is not recognized` — спочатку виконайте `cd truthlens-ua-analytics` (або повний шлях до клону).
 
+**WSL / Linux:** якщо `./start.sh` дає `bad interpreter: /bin/bash^M` — у файлі кінці рядків Windows (CRLF). У репозиторії для `*.sh` задано `.gitattributes` (`eol=lf`); після `git pull` має бути OK. Або вручну: `sed -i 's/\r$//' start.sh start_universal.sh`.
+
 ---
 
 ## 🚀 Швидкий запуск (Windows)

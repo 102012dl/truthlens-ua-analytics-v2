@@ -346,6 +346,13 @@ def check_j_start_scripts() -> None:
         else:
             ok(f"[J] {rel} uses Home.py")
 
+    for rel in ("start.sh", "start_universal.sh"):
+        raw = (ROOT / rel).read_bytes()
+        if b"\r" in raw:
+            fail(f"[J] {rel} contains CR (CRLF) — WSL/Linux fails with /bin/bash^M; use LF (see .gitattributes)")
+        else:
+            ok(f"[J] {rel} line endings OK (LF)")
+
 
 # --- D. PR readiness ---
 
